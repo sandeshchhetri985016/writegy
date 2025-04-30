@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Writegy - Analysis Results</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<h1>Writegy Results</h1>
+<p>Original Text: <span th:text="${textRequest.inputText}"></span></p>
+<p>Suggestions: <span th:text="${textRequest.result}"></span></p>
+<a th:href="@{/}">Back to Editor</a>
+</body>
+</html>
