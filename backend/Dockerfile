@@ -1,5 +1,5 @@
 ﻿# Multi-stage build for optimal size
-# UPDATED: Changed from '21' to '25' to match your local Java version
+# UPDATED: Using Java 21 LTS (compatible with Render)
 FROM maven:3.9.8-eclipse-temurin-21-alpine AS build
 
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Production stage
-# UPDATED: Changed from '21' to '25' runtime
+# UPDATED: Using Java 21 LTS (compatible with Render)
 FROM eclipse-temurin:21-jre-alpine
 
 # Install dumb-init for proper signal handling
