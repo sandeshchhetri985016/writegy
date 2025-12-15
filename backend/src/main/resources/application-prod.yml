@@ -1,0 +1,70 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  jpa:
+    show-sql: false
+
+  datasource:
+    hikari:
+      maximum-pool-size: 3          # Free tier friendly - prevent DB connection exhaustion
+      minimum-idle: 1               # Minimum connections to maintain
+      connection-timeout: 20000     # 20 second timeout
+      idle-timeout: 300000          # 5 minutes idle timeout
+      max-lifetime: 1200000         # 20 minutes max lifetime
+
+  cache:
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=1h  # Optimized for grammar checks
+
+  flyway:
+    enabled: true                   # Auto-migration in production
+    baseline-on-migrate: true       # Handle existing databases
+
+  servlet:
+    multipart:
+      max-file-size: 5MB            # Reduced for 512MB free tier safety
+      max-request-size: 5MB         # Prevent memory exhaustion
+
+languagetool:
+  api:
+    key: ${LANGUAGETOOL_API_KEY}
+
+supabase:
+  url: ${SUPABASE_URL}
+  key: ${SUPABASE_KEY}
+
+cloudflare:
+  r2:
+    endpoint: ${R2_ENDPOINT}
+    bucket-name: writegy-prod
+    access-key: ${R2_ACCESS_KEY}
+    secret-key: ${R2_SECRET_KEY}
+
+cors:
+  allowed-origins: ${FRONTEND_URL}
+
+# Rate Limiting Configuration (global bucket)
+rate-limit:
+  grammar-checks:
+    capacity: 20                    # Requests per refill period
+    refill-duration: 3600           # 1 hour in seconds
+
+logging:
+  level:
+    root: WARN
+    com.writegy: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# OAuth2 Resource Server Configuration (Supabase JWT validation)
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SUPABASE_URL}
+          jwk-set-uri: ${SUPABASE_URL}/.well-known/jwk.json

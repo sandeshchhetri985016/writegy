@@ -1,0 +1,49 @@
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/writegy}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  mail:
+    host: localhost
+    port: 1025
+
+languagetool:
+  api:
+    url: https://api.languagetool.org/v2/check
+    key: ${LANGUAGETOOL_API_KEY:}
+
+supabase:
+  url: ${SUPABASE_URL}
+  key: ${SUPABASE_ANON_KEY}
+
+cloudflare:
+  r2:
+    endpoint: ${R2_ENDPOINT}
+    bucket-name: writegy-dev
+    access-key: ${R2_ACCESS_KEY}
+    secret-key: ${R2_SECRET_KEY}
+
+cors:
+  allowed-origins: http://localhost:5173
+
+logging:
+  level:
+    root: INFO
+    com.writegy: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+
+management:
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Documentation
+README.md
+*.md
+
+# Local development files
+.env
+.env.*
+
+# Test files
+src/test/
+
+# Lombok
+lombok.config
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+target/
