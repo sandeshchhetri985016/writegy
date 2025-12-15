@@ -1,6 +1,6 @@
 package com.writegy.service;
 
-import com.writegy.model.User;
+import com.writegy.model.entity.User;
 import com.writegy.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;

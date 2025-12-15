@@ -1,6 +1,6 @@
 package com.writegy.repository;
 
-import com.writegy.model.Document;
+import com.writegy.model.entity.Document;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -327,7 +327,7 @@ docker build -t writegy-backend .
 - Create Login/Signup endpoints
 
 ### **Phase 3: Document Handling**
-- Configure Cloudflare R2 (AWS SDK)
+- Configure Supabase Storage (AWS SDK, S3-compatible)
 - Implement File Uploads
 - Integrate Apache Tika for text extraction
 

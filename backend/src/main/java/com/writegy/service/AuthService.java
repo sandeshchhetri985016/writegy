@@ -1,6 +1,6 @@
 package com.writegy.service;
 
-import com.writegy.model.User;
+import com.writegy.model.entity.User;
 import com.writegy.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -38,8 +38,8 @@ public class AuthService {
 
         if (existingUser != null) {
             // Update user info if changed
-            if (fullName != null && !fullName.equals(existingUser.getFullName())) {
-                existingUser.setFullName(fullName);
+            if (fullName != null && !fullName.equals(existingUser.getName())) {
+                existingUser.setName(fullName);
                 return userRepository.save(existingUser);
             }
             return existingUser;
@@ -48,7 +48,7 @@ public class AuthService {
         // Create new user from Supabase data
         User newUser = new User();
         newUser.setEmail(email);
-        newUser.setFullName(fullName != null ? fullName : email); // Fallback to email if no name
+        newUser.setName(fullName != null ? fullName : email); // Fallback to email if no name
         newUser.setSupabaseId(sub); // Store Supabase user ID
 
         return userRepository.save(newUser);

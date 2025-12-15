@@ -1,8 +1,9 @@
 package com.writegy.controller;
 
-import com.writegy.model.Document;
+import com.writegy.model.entity.Document;
 import com.writegy.service.DocumentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

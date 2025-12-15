@@ -81,7 +81,7 @@ curl http://localhost:8080/api/documents
 POST /api/documents
 ```
 
-**Description:** Upload document file to Cloudflare R2 storage and save pre-extracted text content to database (hybrid approach for optimal resource usage).
+**Description:** Upload document file to Supabase Storage and save pre-extracted text content to database (hybrid approach for optimal resource usage).
 
 **Content-Type:** `multipart/form-data`
 
@@ -113,7 +113,7 @@ curl -X POST http://localhost:8080/api/documents \
 - ✅ ~20MB memory vs ~100MB (before Tika removal)
 - ✅ ~200ms response time vs 2000ms (before Tika removal)
 - ✅ File validation retained for security
-- ✅ Cloudflare R2 learning maintained
+- ✅ Supabase Storage properly integrated
 
 ### **3. Get Document by ID**
 ```http
@@ -328,7 +328,7 @@ The API provides detailed error responses for all scenarios:
 - `413 Payload Too Large` - File upload exceeds 5MB limit
 - `429 Too Many Requests` - Rate limit exceeded (20 grammar checks/hour)
 - `500 Internal Server Error` - Unexpected server error
-- `503 Service Unavailable` - External service (Cloudflare R2 / LanguageTool) unavailable
+- `503 Service Unavailable` - External service (Supabase Storage / LanguageTool) unavailable
 
 #### **Enhanced Error Response Format**
 ```json

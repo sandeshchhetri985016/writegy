@@ -2,13 +2,13 @@
 
 ## Overview
 
-This guide explains how to deploy Writegy using **Render + Supabase + Cloudflare** - our chosen free platform stack for production.
+This guide explains how to deploy Writegy using **Render + Supabase** - our unified free platform stack for production.
 
 ## Architecture Overview
 
 - **Backend**: Render (Docker deployment, Java 25 + Spring Boot)
 - **Database**: Supabase PostgreSQL (managed)
-- **File Storage**: Cloudflare R2 (10GB free)
+- **File Storage**: Supabase Storage (unlimited free, S3-compatible)
 - **Authentication**: Supabase JWT with OAuth2 Resource Server
 - **Security**: Rate limiting, CORS, file validation
 - **Memory**: Optimized for 512MB free tier (70MB max usage)
@@ -73,11 +73,11 @@ SUPABASE_URL=https://[your-project].supabase.co
 SUPABASE_KEY=[your-anon-key]
 SUPABASE_JWT_SECRET=[optional-jwt-secret]
 
-# Cloudflare R2 (Optional - for file storage)
-R2_ACCESS_KEY=[your-access-key]
-R2_SECRET_KEY=[your-secret-key]
-R2_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
-R2_BUCKET_NAME=writegy-prod
+# File Storage (Supabase Storage - S3-compatible API)
+R2_ACCESS_KEY=[your-supabase-service-role-key]
+R2_SECRET_KEY=[your-supabase-service-role-key]
+R2_ENDPOINT=https://[your-project].supabase.co/storage/v1/s3
+R2_BUCKET_NAME=writegy-files
 
 # LanguageTool API (Optional - grammar checking)
 LANGUAGETOOL_API_KEY=[your-api-key]
@@ -91,15 +91,7 @@ PORT=8080  # Render will set this automatically
 - Click "Create Web Service" - Render will build and deploy automatically
 - Your API will be available at `https://writegy.onrender.com`
 
-## Step 2: File Storage Setup (Cloudflare R2)
-
-Only needed if you implement file uploads:
-
-1. Create R2 bucket at [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Get Access Keys (API Tokens)
-3. Set variables: `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_ENDPOINT`, `R2_BUCKET_NAME`
-
-## Step 3: Verify Deployment
+## Step 2: Verify Deployment
 
 Test your deployment:
 
@@ -154,8 +146,7 @@ Docker Compose will be configured for local development with services like:
 | Service | Free Limits | Cost |
 |---------|-------------|------|
 | Render | 750 hrs/month | $0 |
-| Supabase | 500MB data, 50MB bandwidth | $0 |
-| Cloudflare R2 | 10GB storage, 1GB bandwidth | $0 |
+| Supabase | 500MB data, 50MB bandwidth, 1GB storage | $0 |
 | LanguageTool | Free tier available | $0 |
 
 ## Scaling Up
@@ -167,11 +158,8 @@ When you need to grow:
 - Enable auto-scaling
 
 ### Supabase Pro
-- $25/month for 1GB DB, 10GB bandwidth
+- $25/month for 1GB DB, 10GB bandwidth, 100GB storage
 - Additional features
-
-### Cloudflare R2
-- Pay per GB ($0.015/GB month)
 
 ## Troubleshooting
 
