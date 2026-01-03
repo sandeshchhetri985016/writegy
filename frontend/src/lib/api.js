@@ -1,17 +1,29 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import { supabase } from './supabase'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   timeout: 30000
 })
 
-// Request interceptor to add JWT token
+// Request interceptor to add Supabase JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    try {
+      // Get the JWT token from localStorage (stored by AuthContext)
+      const token = localStorage.getItem('supabase_token')
+      
+      console.log('API Request - Token from localStorage:', token)
+      
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+        console.log('API Request - Authorization header set')
+      } else {
+        console.log('API Request - No token found in localStorage')
+      }
+    } catch (error) {
+      console.warn('Failed to get token from localStorage:', error)
     }
     return config
   },
@@ -84,7 +96,12 @@ export const documentApi = {
   updateDocument: (id, data) => api.put(`/api/documents/${id}`, data),
 
   // Delete document
-  deleteDocument: (id) => api.delete(`/api/documents/${id}`)
+  deleteDocument: (id) => api.delete(`/api/documents/${id}`),
+
+  // Set document parent (for tree hierarchy)
+  setDocumentParent: (id, parentId) => api.post(`/api/documents/${id}/parent`, null, {
+    params: { parentId }
+  })
 }
 
 // Auth API

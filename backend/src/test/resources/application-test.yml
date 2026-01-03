@@ -1,0 +1,40 @@
+# Test-specific configuration to avoid Supabase JWT loading issues
+
+spring:
+  # Disable JWT validation during testing
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://test.supabase.co
+          jwk-set-uri: https://test.supabase.co/auth/v1/.well-known/jwks.json
+
+  # Disable Flyway for tests to avoid PostgreSQL-specific syntax issues
+  flyway:
+    enabled: false
+
+  # Use H2 with simpler schema
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+# Test-specific Supabase configuration
+supabase:
+  url: https://test.supabase.co
+  key: test-key
+
+# Disable OpenRouter API calls during testing
+openrouter:
+  api:
+    key: test-key
+  model: meta-llama/llama-3.2-3b-instruct:free
+  base:
+    url: https://test.openrouter.ai/api/v1
+
+# Test logging
+logging:
+  level:
+    com.writegy: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: ERROR

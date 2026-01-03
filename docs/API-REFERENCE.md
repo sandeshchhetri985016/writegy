@@ -81,12 +81,12 @@ curl http://localhost:8080/api/documents
 POST /api/documents
 ```
 
-**Description:** Upload document file to Supabase Storage and save pre-extracted text content to database (hybrid approach for optimal resource usage).
+**Description:** Upload document file to Supabase Storage and save pre-extracted text content to database with automatic word/character counting.
 
 **Content-Type:** `multipart/form-data`
 
 **Request Parameters:**
-- `file` (MultipartFile): PDF/DOCX file for storage (max 5MB)
+- `file` (MultipartFile): PDF/DOCX file for storage (max 5MB, optional)
 - `title` (string): Document title
 - `content` (string): Pre-extracted text content from frontend
 
@@ -105,9 +105,19 @@ curl -X POST http://localhost:8080/api/documents \
   "id": 1,
   "title": "My Research Paper",
   "content": "This is the extracted text from the PDF...",
-  "createdAt": "2025-12-12T10:30:00Z"
+  "wordCount": 8,
+  "characterCount": 36,
+  "status": "DRAFT",
+  "createdAt": "2025-12-12T10:30:00Z",
+  "updatedAt": "2025-12-12T10:30:00Z"
 }
 ```
+
+**Features:**
+- ✅ **Automatic Word Counting** - Calculated from content
+- ✅ **Character Counting** - Excludes whitespace
+- ✅ **File Storage** - Optional file upload to Supabase
+- ✅ **Legacy Support** - Auto-updates old documents without counts
 
 **Resource Benefits:**
 - ✅ ~20MB memory vs ~100MB (before Tika removal)
@@ -209,6 +219,39 @@ curl -X DELETE http://localhost:8080/api/documents/1
 ```json
 // Empty response body
 ```
+
+### **6. Grammar Check (AI-Powered)**
+```http
+POST /api/grammar/check
+```
+
+**Description:** Analyze text for grammar errors, spelling mistakes, punctuation issues, and writing style suggestions using AI.
+
+**Request Body:**
+```json
+{
+  "text": "This is the text to check for grammer errors."
+}
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8080/api/grammar/check \
+  -H "Content-Type: application/json" \
+  -d '{"text":"This is the body text to save anc check grammer"}'
+```
+
+**Response (Success 200):**
+```json
+"AI Grammar Analysis:\n**Analysis Report**\n\n**1. Grammar Errors and Spelling Mistakes**\n\n* \"anc\" should be spelled as \"and\"\n* \"grammer\" should be spelled as \"grammar\"\n\n**2. Punctuation Issues**\n\n* The text lacks punctuation, making it difficult to understand. Consider adding commas, periods, or other punctuation marks to separate ideas and improve clarity.\n\n..."
+```
+
+**Features:**
+- ✅ **AI-Powered Analysis** - Grammar, spelling, style suggestions
+- ✅ **Comprehensive Feedback** - Detailed actionable recommendations
+- ✅ **Caching Enabled** - Faster responses for repeated checks
+- ✅ **Rate Limited** - 20 checks per hour per user
+- ✅ **Fallback Support** - Basic checks when AI unavailable
 
 ## 🔍 **Health & Monitoring Endpoints**
 

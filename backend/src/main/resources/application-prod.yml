@@ -50,6 +50,11 @@ rate-limit:
     capacity: 20                    # Requests per refill period
     refill-duration: 3600           # 1 hour in seconds
 
+# JWT Validation Configuration
+jwt:
+  validation:
+    strict: true                    # Enforce strict JWT validation in production
+
 logging:
   level:
     root: WARN

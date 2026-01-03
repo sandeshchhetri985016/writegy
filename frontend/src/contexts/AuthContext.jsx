@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
-import { authApi } from '../lib/api'
 
 const AuthContext = createContext()
 
@@ -17,50 +17,47 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (session) {
-        setUser(session.user)
-        localStorage.setItem('access_token', session.access_token)
-
-        // Sync with backend
-        try {
-          await authApi.syncUser()
-        } catch (error) {
-          console.error('Failed to sync user with backend:', error)
+    // Check for existing session on app load
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Error getting session:', error)
         }
-      }
 
-      setLoading(false)
+        if (session) {
+          setUser(session.user)
+          // Store the JWT token in localStorage for API requests
+          if (session.access_token) {
+            localStorage.setItem('supabase_token', session.access_token)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    getInitialSession()
+    checkSession()
 
-    // Listen for auth state changes
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email)
-
-      if (session) {
-        setUser(session.user)
-        localStorage.setItem('access_token', session.access_token)
-
-        // Sync with backend on sign in
-        try {
-          await authApi.syncUser()
-        } catch (error) {
-          console.error('Failed to sync user with backend:', error)
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          setUser(session.user)
+          // Store the JWT token in localStorage for API requests
+          if (session.access_token) {
+            localStorage.setItem('supabase_token', session.access_token)
+          }
+        } else {
+          setUser(null)
+          // Clear the token from localStorage
+          localStorage.removeItem('supabase_token')
         }
-      } else {
-        setUser(null)
-        localStorage.removeItem('access_token')
       }
-
-      setLoading(false)
-    })
+    )
 
     return () => {
       subscription.unsubscribe()
@@ -75,28 +72,18 @@ export const AuthProvider = ({ children }) => {
         password
       })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
+
+      if (data?.user) {
+        setUser(data.user)
+        toast.success('Welcome back!')
+      }
+
       return { data, error: null }
     } catch (error) {
-      return { data: null, error }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const signInWithEmail = async (email) => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin
-        }
-      })
-
-      if (error) throw error
-      return { data, error: null }
-    } catch (error) {
+      console.error('Login error:', error)
       return { data: null, error }
     } finally {
       setLoading(false)
@@ -110,13 +97,22 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
+
+      if (data?.user) {
+        setUser(data.user)
+        toast.success('Account created! Please check your email to verify your account.')
+      }
+
       return { data, error: null }
     } catch (error) {
+      console.error('Registration error:', error)
       return { data: null, error }
     } finally {
       setLoading(false)
@@ -127,9 +123,40 @@ export const AuthProvider = ({ children }) => {
     setLoading(true)
     try {
       const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      
+      if (error) {
+        throw error
+      }
+
+      setUser(null)
+      toast.success('Signed out successfully')
     } catch (error) {
       console.error('Error signing out:', error)
+      toast.error('Failed to sign out')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signInWithEmail = async (email) => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+
+      if (error) {
+        throw error
+      }
+
+      toast.success('Magic link sent to your email!')
+      return { data, error: null }
+    } catch (error) {
+      console.error('Magic link error:', error)
+      return { data: null, error }
     } finally {
       setLoading(false)
     }
@@ -139,12 +166,17 @@ export const AuthProvider = ({ children }) => {
     setLoading(true)
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password'
+        redirectTo: `${window.location.origin}/auth/reset-password`
       })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
+
+      toast.success('Password reset link sent to your email!')
       return { data, error: null }
     } catch (error) {
+      console.error('Password reset error:', error)
       return { data: null, error }
     } finally {
       setLoading(false)
@@ -158,9 +190,14 @@ export const AuthProvider = ({ children }) => {
         password: newPassword
       })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
+
+      toast.success('Password updated successfully!')
       return { data, error: null }
     } catch (error) {
+      console.error('Update password error:', error)
       return { data: null, error }
     } finally {
       setLoading(false)

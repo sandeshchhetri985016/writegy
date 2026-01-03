@@ -24,6 +24,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String requestURI = request.getRequestURI();
 
+        // Allow preflight requests to bypass rate limiting
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // Apply rate limiting only to grammar check endpoint
         if (requestURI.startsWith("/api/grammar/check")) {
             ConsumptionProbe probe = grammarCheckBucket.tryConsumeAndReturnRemaining(1);

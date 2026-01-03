@@ -47,13 +47,16 @@
 - **Architecture:** Monolithic for MVP simplicity
 - **Deployment:** Docker + Render (free tier)
 
-### **Complete Tech Stack**
+### **Complete Tech Stack (Latest Features)**
 - **Frontend:** React 18 + Vite + TypeScript + TailwindCSS
 - **Backend:** Spring Boot 3.5.5 + Java 21/25 + JWT Security
 - **Database:** Supabase PostgreSQL 16 (500MB free forever)
 - **Authentication:** Supabase Auth (unlimited users)
 - **File Storage:** Supabase Storage (1GB free, S3-compatible)
-- **AI Grammar:** LanguageTool API (rate limited)
+- **AI Grammar:** OpenRouter API with inline suggestions panel
+- **Rich Text Editor:** Formatting toolbar (bold, italic, lists, etc.)
+- **Auto-Save:** Debounced auto-save (2-second delay)
+- **Word Counting:** Backend calculation with character stats
 - **Deployment:** Render + Docker (512MB free)
 - **Monitoring:** Spring Actuator + structured logging
 

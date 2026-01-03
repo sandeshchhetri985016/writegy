@@ -31,7 +31,7 @@ public class UserEvent {
 
     private Long entityId;
 
-    @Column(columnDefinition = "JSONB")
+    @Column(columnDefinition = "TEXT")
     private String metadata;
 
     @CreatedDate

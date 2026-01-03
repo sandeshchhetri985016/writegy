@@ -1,5 +1,6 @@
 package com.writegy.controller;
 
+import com.writegy.dto.GrammarCheckRequest;
 import com.writegy.service.GrammarService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +17,8 @@ public class GrammarController {
     private GrammarService grammarService;
 
     @PostMapping("/check")
-    public ResponseEntity<String> checkGrammar(@RequestBody String text) {
-        String result = grammarService.checkGrammar(text);
+    public ResponseEntity<String> checkGrammar(@RequestBody GrammarCheckRequest request) {
+        String result = grammarService.checkGrammar(request.getText());
         return ResponseEntity.ok(result);
     }
 }

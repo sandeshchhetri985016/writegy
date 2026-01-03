@@ -79,8 +79,10 @@ R2_SECRET_KEY=[your-supabase-service-role-key]
 R2_ENDPOINT=https://[your-project].supabase.co/storage/v1/s3
 R2_BUCKET_NAME=writegy-files
 
-# LanguageTool API (Optional - grammar checking)
-LANGUAGETOOL_API_KEY=[your-api-key]
+# AI Grammar Checking (OpenRouter API - Required for grammar features)
+OPENROUTER_API_KEY=[your-openrouter-api-key]
+OPENROUTER_MODEL=microsoft/wizardlm-2-8x22b  # Recommended model
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 # Render Configuration
 PORT=8080  # Render will set this automatically

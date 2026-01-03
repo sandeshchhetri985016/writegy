@@ -1,6 +1,6 @@
-# 📝 Writegy - AI-Powered Writing Assistant
+# 📝 Writegy - Complete AI-Powered Writing Assistant
 
-**Complete SaaS writing assistant with React frontend + Spring Boot backend, deployed on Render + Supabase (100% free tier).**
+**Full-featured SaaS writing platform with React 18 + Spring Boot 3.5, deployed on Render + Supabase (100% free tier). Features AI grammar checking, rich text editing, document management, and seamless file uploads.**
 
 [![Java 21](https://img.shields.io/badge/Java-21/25-orange.svg)](https://openjdk.org/)
 [![Spring Boot 3.5.5](https://img.shields.io/badge/Spring_Boot-3.5.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
@@ -278,14 +278,42 @@ git push origin main
 
 Your API will be live at: `https://writegy-backend.onrender.com`
 
+## ✨ **Latest Features & Improvements**
+
+### **🚀 Advanced Auto-Save System**
+- ✅ **Debounced Auto-Save** (2-second delay after typing stops)
+- ✅ **Smart Timing** - Saves when you pause, not while typing
+- ✅ **Visual Feedback** - Shows "Saving..." and "Draft saved" status
+- ✅ **Background Processing** - Doesn't interrupt writing flow
+
+### **📝 Rich Text Editor with AI**
+- ✅ **Formatting Toolbar** - Bold, italic, underline, lists, quotes
+- ✅ **Inline Grammar Panel** - Collapsible suggestions sidebar
+- ✅ **AI-Powered Analysis** - Spelling, grammar, style suggestions
+- ✅ **Real-time Feedback** - Immediate analysis with detailed reports
+
+### **📊 Smart Document Management**
+- ✅ **Accurate Word Counts** - Backend calculation with character stats
+- ✅ **Legacy Data Migration** - Auto-updates old documents
+- ✅ **Document Statistics** - Words, characters, creation dates
+- ✅ **File Upload Support** - PDF/DOCX text extraction
+
+### **🎨 Professional UI/UX**
+- ✅ **Responsive Design** - Mobile-friendly interface
+- ✅ **Toast Notifications** - User-friendly success/error messages
+- ✅ **Loading States** - Better user feedback throughout
+- ✅ **Error Handling** - Comprehensive error management
+
 ## 🎯 **Complete SaaS Application Status**
 
-- ✅ **Full-Stack Application** running with React + Spring Boot
+- ✅ **Full-Stack Application** running with React 18 + Spring Boot 3.5
 - ✅ **Supabase Authentication** with JWT security (unlimited users)
 - ✅ **PostgreSQL Database** with 500MB free storage forever
 - ✅ **Supabase Storage** 1GB file uploads (S3-compatible)
+- ✅ **Advanced Auto-Save** with debounced timing (2s delay)
+- ✅ **AI Grammar Checking** with inline suggestions panel
+- ✅ **Rich Text Formatting** toolbar with professional features
 - ✅ **Hybrid Document Processing** (frontend extracts, backend stores)
-- ✅ **Grammar AI** with rate limiting (LanguageTool API)
 - ✅ **Docker Deployment** Java 21 optimized containers
 - ✅ **Production Ready** on Render with monitoring
 - ✅ **Enterprise Security** Rate limiting + error handling

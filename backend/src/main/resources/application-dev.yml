@@ -36,6 +36,11 @@ cloudflare:
 cors:
   allowed-origins: http://localhost:5173
 
+# JWT Validation Configuration
+jwt:
+  validation:
+    strict: false                   # Allow fallback for development
+
 logging:
   level:
     root: INFO

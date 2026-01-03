@@ -244,7 +244,49 @@ curl http://localhost:8080/api/documents
 
 **🎉 You just built and tested a working Java API!**
 
-#### **Test 4: Health Check**
+#### **Test 4: Word Count Calculation**
+```bash
+# Test word counting (should show wordCount and characterCount)
+curl http://localhost:8080/api/documents
+```
+
+**Expected Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "My First Java API",
+    "content": "Hello from Java 25!",
+    "wordCount": 3,
+    "characterCount": 16,
+    "status": "DRAFT",
+    "createdAt": "2025-12-12T10:35:00Z",
+    "updatedAt": "2025-12-12T10:35:00Z"
+  }
+]
+```
+
+#### **Test 5: Grammar Check (AI-Powered)**
+```bash
+# Test grammar checking with AI
+curl -X POST http://localhost:8080/api/grammar/check \
+  -H "Content-Type: application/json" \
+  -d '{"text":"This is the body text to save anc check grammer"}'
+```
+
+**Expected Response:**
+```
+AI Grammar Analysis:
+**Analysis Report**
+
+**1. Grammar Errors and Spelling Mistakes**
+
+* "anc" should be spelled as "and"
+* "grammer" should be spelled as "grammar"
+...
+```
+
+#### **Test 6: Health Check**
 ```bash
 curl http://localhost:8080/actuator/health
 ```

@@ -9,6 +9,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 
 @Entity
 @Table(name = "writing_metrics", uniqueConstraints = {
@@ -41,7 +45,8 @@ public class WritingMetrics {
     @Builder.Default
     private Double grammarScore = 100.0;
 
-    @Column(columnDefinition = "TEXT[]")
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
     private List<String> commonErrors;
 
     @CreatedDate
@@ -51,4 +56,27 @@ public class WritingMetrics {
     @LastModifiedDate
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Converter
+    public static class StringListConverter implements AttributeConverter<List<String>, String> {
+        private final ObjectMapper objectMapper = new ObjectMapper();
+
+        @Override
+        public String convertToDatabaseColumn(List<String> attribute) {
+            try {
+                return attribute != null ? objectMapper.writeValueAsString(attribute) : null;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to convert list to JSON", e);
+            }
+        }
+
+        @Override
+        public List<String> convertToEntityAttribute(String dbData) {
+            try {
+                return dbData != null ? objectMapper.readValue(dbData, new TypeReference<List<String>>() {}) : null;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to convert JSON to list", e);
+            }
+        }
+    }
 }

@@ -12,6 +12,7 @@ public class AuthResponse {
     private String email;
     private String fullName;  // For legacy compatibility with existing code
 
+    // Explicit constructor for AuthController compatibility
     public AuthResponse(String token, String email, String fullName) {
         this.token = token;
         this.email = email;
