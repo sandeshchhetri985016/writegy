@@ -71,3 +71,4 @@ Thumbs.db
 # Application specific
 writegy-iml/
 *.iml
+.clinerules/accessibility-security-first.md

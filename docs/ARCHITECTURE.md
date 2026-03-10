@@ -7,14 +7,15 @@
 ```
 ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
 │     React 18        │    │   Spring Boot       │    │   Supabase PG       │    │  Supabase Storage   │
-│   Frontend SPA      │◄──►│   Java 21/25        │◄──►│   500MB Free        │◄──►│   1GB Files         │
-│   (Vite + TS)       │    │   JWT Security      │    │   PostgreSQL 16     │    │   S3-Compatible     │
+│   Frontend SPA      │◄──►│   Java 21           │◄──►│   500MB Free        │◄──►│   1GB Files         │
+│                     │    │   JWT Security      │    │   PostgreSQL 16     │    │   S3-Compatible     │
 └─────────────────────┘    └─────────────────────┘    └─────────────────────┘    └─────────────────────┘
          │                           │                           │                           │
          ▼                           ▼                           ▼                           ▼
    📱 User Interface           ⚙️ REST API (20MB mem)         💾 Document Storage          📁 File Storage
    🔐 Supabase Auth            🛡️ Rate Limiting              🔄 Auto Migrations         📊 CDN Delivery
    ✍️ Rich Text Editor         📊 Health Monitoring           🎯 Enterprise RL S         🚀 Global Access
+   ♿ Accessibility Suite      🔊 Screen Reader Support       🎯 WCAG 2.1 AA             🖱️ Keyboard Navigation
    📄 Hybrid Processing       🔧 Container Optimized          📊 Performance Pooling      🛡️ Private Buckets
 
 ┌─────────────────────┐                                 ┌─────────────────────┐
@@ -28,8 +29,8 @@
 
 | Component | Status | Technology | Free Tier Limit | Usage |
 |-----------|--------|------------|----------------|-------|
-| **Frontend** | ✅ Production | React 18 + TypeScript | Unlimited | File processing + UI |
-| **Backend** | ✅ Production | Spring Boot 3.5.5 (Java 21/25) | 512MB RAM | 20MB optimized |
+| **Frontend** | ✅ Production | React 18 | Unlimited | File processing + UI |
+| **Backend** | ✅ Production | Spring Boot 3.5.5 (Java 21) | 512MB RAM | 20MB optimized |
 | **Database** | ✅ Production | Supabase PostgreSQL 16 | 500MB forever | Auto migrations |
 | **Authentication** | ✅ Production | Supabase Auth + JWT | Unlimited users | Secure sessions |
 | **File Storage** | ✅ Production | Supabase Storage (S3) | 1GB | Hybrid processing |
@@ -41,21 +42,23 @@
 
 ## 🎯 **Current MVP Architecture (What Works Now)**
 
-### **Backend (Java 25 + Spring Boot 3.5.5)**
-- **Language:** Java 25 (latest LTS with performance benefits)
-- **Framework:** Spring Boot 3.5.5 (optimized for Java 25)
+### **Backend (Java 21 + Spring Boot 3.5.5)**
+- **Language:** Java 21 (latest LTS with performance benefits)
+- **Framework:** Spring Boot 3.5.5 (optimized for Java 21)
 - **Architecture:** Monolithic for MVP simplicity
 - **Deployment:** Docker + Render (free tier)
 
 ### **Complete Tech Stack (Latest Features)**
-- **Frontend:** React 18 + Vite + TypeScript + TailwindCSS
-- **Backend:** Spring Boot 3.5.5 + Java 21/25 + JWT Security
+- **Frontend:** React 18 + Vite + TailwindCSS
+- **Backend:** Spring Boot 3.5.5 + Java 21 + JWT Security
 - **Database:** Supabase PostgreSQL 16 (500MB free forever)
 - **Authentication:** Supabase Auth (unlimited users)
 - **File Storage:** Supabase Storage (1GB free, S3-compatible)
-- **AI Grammar:** OpenRouter API with inline suggestions panel
-- **Rich Text Editor:** Formatting toolbar (bold, italic, lists, etc.)
-- **Auto-Save:** Debounced auto-save (2-second delay)
+- **AI Grammar:** LanguageTool API with interactive suggestions panel
+- **Dual-Mode Editor:** Rich text editor + markdown editor with live preview
+- **Document Hierarchy:** Parent-child document relationships
+- **Auto-Save:** Debounced auto-save with draft restoration
+- **Accessibility:** WCAG 2.1 AA compliance with ARIA labels and keyboard navigation
 - **Word Counting:** Backend calculation with character stats
 - **Deployment:** Render + Docker (512MB free)
 - **Monitoring:** Spring Actuator + structured logging
@@ -132,16 +135,20 @@ public class DocumentController {
     @Autowired
     private DocumentService documentService;
 
-    @PostMapping
-    public ResponseEntity<Document> createDocument(@RequestParam("file") MultipartFile file) throws IOException {
-        Document document = documentService.createDocument(file);
-        return ResponseEntity.ok(document);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DocumentDTO> createDocument(
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content) throws IOException {
+        Document document = documentService.createDocument(file, title, content);
+        DocumentDTO dto = mapToDTO(document);
+        return ResponseEntity.ok(dto);
     }
     // ... other endpoints
 }
 ```
 
-**Purpose:** Handles HTTP requests for document management. The `createDocument` endpoint now accepts a file upload.
+**Purpose:** Handles HTTP requests for document management. The `createDocument` endpoint accepts multipart data, including an optional file and required title/content fields.
 
 **Current Implementation:** Uses `DocumentService` to handle the business logic.
 
@@ -213,12 +220,12 @@ spring:
 
 ## 🚀 **Technology Stack Justification**
 
-### **Why Java 25 + Spring Boot?**
+### **Why Java 21 + Spring Boot?**
 
 | Factor | Decision | Reasoning |
 |--------|----------|-----------|
-| **Language** | Java 25 LTS | Latest LTS with 10% performance boost |
-| **Framework** | Spring Boot 3.5.5 | Full Java 25 support, Spring 4.0 compatibility |
+| **Language** | Java 21 LTS | Latest LTS with performance boost |
+| **Framework** | Spring Boot 3.5.5 | Full Java 21 support, Spring 4.0 compatibility |
 | **Build Tool** | Maven 3.9.11+ | Industry standard for Java projects |
 | **Database** | H2 (dev) → PostgreSQL (prod) | Easy learning curve to production |
 
@@ -259,7 +266,7 @@ spring:
 
 ### **RESTful Conventions:**
 - `GET /api/documents` - Get all documents
-- `POST /api/documents/upload` - Upload document (Multipart)
+- `POST /api/documents` - Upload document (Multipart)
 - `GET /api/documents/{id}` - Get specific document
 - `PUT /api/documents/{id}` - Update document
 - `DELETE /api/documents/{id}` - Delete document
@@ -278,7 +285,7 @@ spring:
 {
   "status": "success",
   "data": { /* resource data */ },
-  "timestamp": "2025-12-12T10:30:00Z"
+  "timestamp": "[TIMESTAMP]"
 }
 ```
 
@@ -303,7 +310,7 @@ docker build -t writegy-backend .
 ## 📊 **Performance Considerations**
 
 ### **Memory Optimization:**
-- Java 25 compact object headers (~10% memory reduction)
+- Java 21 compact object headers (~10% memory reduction)
 - Render free tier: 512MB RAM
 - G1 garbage collector optimized for containers
 
@@ -339,7 +346,7 @@ docker build -t writegy-backend .
 - Implement Caffeine Cache for performance
 
 ### **Phase 5: Deployment**
-- Finalize Dockerfile (Java 25 Alpine)
+- Finalize Dockerfile (Java 21 Alpine)
 - Configure Render Environment Variables
 - Verify Health Checks
 

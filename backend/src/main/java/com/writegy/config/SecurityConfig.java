@@ -73,6 +73,7 @@ public class SecurityConfig {
         // Start with a list of default development origins
         List<String> origins = new java.util.ArrayList<>(Arrays.asList(
                 "http://localhost:3000",   // React dev
+                "http://localhost:3001",   // React dev alternate
                 "http://localhost:5173",   // Vite dev
                 "http://localhost:4000",   // Common dev port
                 "http://localhost:4173",   // Vite dev (current)

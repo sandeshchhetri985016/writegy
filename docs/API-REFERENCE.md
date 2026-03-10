@@ -220,7 +220,111 @@ curl -X DELETE http://localhost:8080/api/documents/1
 // Empty response body
 ```
 
-### **6. Grammar Check (AI-Powered)**
+### **6. Document Hierarchy Management**
+```http
+POST /api/documents/{id}/children
+```
+
+**Description:** Create a child document under the specified parent document.
+
+**URL Parameters:**
+- `id` (integer): Parent document ID
+
+**Request Body:**
+```json
+{
+  "title": "Child Document Title",
+  "content": "Child document content"
+}
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8080/api/documents/1/children \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Child Document","content":"This is a child document"}'
+```
+
+**Response (Success 200):**
+```json
+{
+  "id": 2,
+  "title": "Child Document",
+  "content": "This is a child document",
+  "parentId": 1,
+  "createdAt": "2025-12-12T10:30:00Z"
+}
+```
+
+```http
+GET /api/documents/{id}/children
+```
+
+**Description:** Get all child documents for the specified parent document.
+
+**URL Parameters:**
+- `id` (integer): Parent document ID
+
+**Example Request:**
+```bash
+curl http://localhost:8080/api/documents/1/children
+```
+
+**Response (Success 200):**
+```json
+[
+  {
+    "id": 2,
+    "title": "Child Document 1",
+    "content": "First child document",
+    "parentId": 1,
+    "createdAt": "2025-12-12T10:30:00Z"
+  },
+  {
+    "id": 3,
+    "title": "Child Document 2",
+    "content": "Second child document",
+    "parentId": 1,
+    "createdAt": "2025-12-12T10:35:00Z"
+  }
+]
+```
+
+```http
+PUT /api/documents/{id}/parent
+```
+
+**Description:** Set or update the parent relationship for a document.
+
+**URL Parameters:**
+- `id` (integer): Document ID to update
+
+**Request Body:**
+```json
+{
+  "parentId": 1
+}
+```
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:8080/api/documents/3/parent \
+  -H "Content-Type: application/json" \
+  -d '{"parentId":1}'
+```
+
+**Response (Success 200):**
+```json
+{
+  "id": 3,
+  "title": "Updated Child Document",
+  "content": "Document with new parent",
+  "parentId": 1,
+  "createdAt": "2025-12-12T10:30:00Z"
+}
+```
+
+### **7. Grammar Check (AI-Powered)**
 ```http
 POST /api/grammar/check
 ```
@@ -252,6 +356,59 @@ curl -X POST http://localhost:8080/api/grammar/check \
 - ✅ **Caching Enabled** - Faster responses for repeated checks
 - ✅ **Rate Limited** - 20 checks per hour per user
 - ✅ **Fallback Support** - Basic checks when AI unavailable
+
+### **8. Editor Mode Management**
+```http
+GET /api/editor/modes
+```
+
+**Description:** Get available editor modes (rich text and markdown).
+
+**Example Request:**
+```bash
+curl http://localhost:8080/api/editor/modes
+```
+
+**Response (Success 200):**
+```json
+{
+  "modes": ["rich-text", "markdown"],
+  "default": "rich-text"
+}
+```
+
+```http
+POST /api/editor/preview
+```
+
+**Description:** Preview markdown content as HTML for live preview functionality.
+
+**Request Body:**
+```json
+{
+  "markdown": "# Heading\n\nThis is **bold** text with *italic* formatting."
+}
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8080/api/editor/preview \
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# Test\n\nThis is **markdown** content"}'
+```
+
+**Response (Success 200):**
+```json
+{
+  "html": "<h1>Test</h1>\n<p>This is <strong>markdown</strong> content</p>"
+}
+```
+
+**Features:**
+- ✅ **Live Preview** - Real-time markdown to HTML conversion
+- ✅ **Syntax Highlighting** - Code blocks with syntax highlighting
+- ✅ **GFM Support** - GitHub Flavored Markdown support
+- ✅ **Keyboard Shortcuts** - Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (links)
 
 ## 🔍 **Health & Monitoring Endpoints**
 
@@ -419,6 +576,34 @@ The API provides detailed error responses for all scenarios:
 }
 ```
 
+## ♿ **Accessibility Features**
+
+### **Frontend Accessibility Implementation**
+The application includes comprehensive accessibility features following WCAG 2.1 AA guidelines:
+
+#### **ARIA Labels & Semantic HTML**
+- Proper semantic HTML structure with landmarks (`<header>`, `<main>`, `<aside>`, `<footer>`)
+- ARIA labels on all interactive elements
+- Screen reader announcements for dynamic content updates
+- Live regions for status messages
+
+#### **Keyboard Navigation**
+- Full keyboard accessibility with logical tab order
+- Skip links for bypassing navigation
+- Focus management with visible focus indicators
+- Keyboard shortcuts documented and accessible
+
+#### **Screen Reader Support**
+- Comprehensive screen reader compatibility
+- Alt text and ARIA descriptions for all UI elements
+- Live announcements for grammar check results
+- Proper heading hierarchy (h1 → h2 → h3)
+
+#### **Text Highlighting**
+- Interactive text highlighting when hovering over grammar suggestions
+- Visual feedback showing which text corresponds to each suggestion
+- Temporary highlighting that doesn't affect document content
+
 ## 🔐 **Security (Implemented)**
 
 The API implements enterprise-grade security optimized for production:
@@ -450,6 +635,11 @@ The API implements enterprise-grade security optimized for production:
 - Secure JWT validation with signature verification
 - Password handling entirely managed by Supabase
 - Comprehensive input validation and sanitization
+
+### **API Key Security**
+- All sensitive keys properly excluded from version control via `.gitignore`
+- Environment variable configuration for production deployments
+- No hardcoded secrets in codebase
 
 ## 📊 **Performance Optimizations**
 

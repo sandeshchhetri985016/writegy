@@ -23,6 +23,9 @@ import * as pdfParse from 'pdf-parse'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import SuggestionPanel from './SuggestionPanel'
+import MarkdownEditor from './MarkdownEditor'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const TextEditor = () => {
   const { id } = useParams()
@@ -41,6 +44,7 @@ const TextEditor = () => {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
+  const [editorMode, setEditorMode] = useState('rich-text') // 'rich-text' or 'markdown'
   const [wordCount, setWordCount] = useState(0)
   const [charCount, setCharCount] = useState(0)
   const [autoSaveStatus, setAutoSaveStatus] = useState('')
@@ -412,7 +416,65 @@ const TextEditor = () => {
   }
 
   const renderPreview = (text) => {
-    return <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: text }} />
+    // If in markdown mode, render markdown as HTML, otherwise render HTML directly
+    if (editorMode === 'markdown') {
+      return (
+        <div className="prose prose-lg max-w-none">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => <h1 className="text-3xl font-bold mb-4 mt-6 text-gray-900">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-2xl font-bold mb-3 mt-5 text-gray-900">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-xl font-bold mb-2 mt-4 text-gray-900">{children}</h3>,
+              p: ({ children }) => <p className="mb-4 text-gray-700 leading-relaxed">{children}</p>,
+              ul: ({ children }) => <ul className="mb-4 ml-6 list-disc text-gray-700">{children}</ul>,
+              ol: ({ children }) => <ol className="mb-4 ml-6 list-decimal text-gray-700">{children}</ol>,
+              li: ({ children }) => <li className="mb-1">{children}</li>,
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-4">
+                  {children}
+                </blockquote>
+              ),
+              strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+              em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
+              code: ({ inline, children }) => inline ? (
+                <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>
+              ) : (
+                <code className="block bg-gray-100 p-4 rounded text-sm font-mono overflow-x-auto">{children}</code>
+              ),
+              table: ({ children }) => (
+                <div className="overflow-x-auto mb-4">
+                  <table className="min-w-full border-collapse border border-gray-300">
+                    {children}
+                  </table>
+                </div>
+              ),
+              thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+              tbody: ({ children }) => <tbody>{children}</tbody>,
+              tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
+              th: ({ children }) => (
+                <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-900">
+                  {children}
+                </th>
+              ),
+              td: ({ children }) => (
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{children}</td>
+              ),
+              a: ({ children, href }) => (
+                <a href={href} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">
+                  {children}
+                </a>
+              )
+            }}
+          >
+            {text || '*No content to preview*'}
+          </ReactMarkdown>
+        </div>
+      )
+    } else {
+      // Rich text mode - render HTML directly
+      return <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: text }} />
+    }
   }
 
   if (loading) {
@@ -461,6 +523,21 @@ const TextEditor = () => {
                 {autoSaveStatus}
               </div>
             )}
+
+            {/* Editor Mode Toggle */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setEditorMode(editorMode === 'rich-text' ? 'markdown' : 'rich-text')}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  editorMode === 'markdown'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                title={`Switch to ${editorMode === 'rich-text' ? 'Markdown' : 'Rich Text'} editor`}
+              >
+                {editorMode === 'markdown' ? '📝' : '✨'} {editorMode === 'markdown' ? 'MD' : 'RT'}
+              </button>
+            </div>
 
             {/* Preview Toggle */}
             <button
@@ -553,6 +630,13 @@ const TextEditor = () => {
           <div className="flex-1 p-6">
             {previewMode ? (
               renderPreview(document.content)
+            ) : editorMode === 'markdown' ? (
+              <MarkdownEditor
+                value={document.content}
+                onChange={(content) => setDocument(prev => ({ ...prev, content }))}
+                placeholder="Start writing in Markdown..."
+                className="h-[calc(100vh-320px)]"
+              />
             ) : (
               <ReactQuill
                 ref={quillRef}

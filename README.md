@@ -2,7 +2,7 @@
 
 **Full-featured SaaS writing platform with React 18 + Spring Boot 3.5, deployed on Render + Supabase (100% free tier). Features AI grammar checking, rich text editing, document management, and seamless file uploads.**
 
-[![Java 21](https://img.shields.io/badge/Java-21/25-orange.svg)](https://openjdk.org/)
+[![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
 [![Spring Boot 3.5.5](https://img.shields.io/badge/Spring_Boot-3.5.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![React 18](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Storage-green.svg)](https://supabase.com)
@@ -12,7 +12,7 @@
 ## 🚀 **Quick Start (10 Minutes - Full Stack)**
 
 ### Prerequisites
-- Java 25 (Temurin distribution) - for development
+- Java 21 (Temurin distribution) - for development
 - Node.js 18+ (for React frontend)
 - Maven 3.9+
 - Git
@@ -25,7 +25,7 @@ cd writegy
 # Set up environment variables
 cp .env.sample .env  # Configure your Supabase keys
 
-# Start the backend (Java 25 locally, Java 21 in Docker if containerized)
+# Start the backend (Java 21)
 cd backend
 mvn clean install
 mvn spring-boot:run -Dspring.profiles.active=dev
@@ -76,7 +76,7 @@ curl http://localhost:8080/api/documents
 ```
 ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
 │     React 18        │    │   Spring Boot       │    │   Supabase PG       │    │  Supabase Storage   │
-│   Frontend SPA      │◄──►│   Java 21/25        │◄──►│   500MB Free        │◄──►│   1GB Files         │
+│   Frontend SPA      │◄──►│   Java 21           │◄──►│   500MB Free        │◄──►│   1GB Files         │
 │                     │    │   JWT Security      │    │                     │    │   S3-Compatible     │
 └─────────────────────┘    └─────────────────────┘    └─────────────────────┘    └─────────────────────┘
          │                           │                           │                           │
@@ -107,7 +107,7 @@ Frontend Processing → Backend Storage → Cloud Persistence
 
 ## 📖 **What This Project Teaches**
 
-### **Java 25 Features**
+### **Java 21 Features**
 - Modern JVM with 10% performance boost
 - Structured concurrency
 - Enhanced virtual threads
@@ -151,7 +151,7 @@ writegy/
 │   │   │   ├── 📂 dashboard/                    # 📊 Document management
 │   │   │   └── 📂 editor/                       # ✍️ Text editor + grammar
 │   │   ├── 📂 lib/                             # 🔧 Utilities
-│   │   │   ├── 📄 api.js                        # ✨ Axios + Supabase API
+│   │   │   ├── 📂 api/                        # ✨ Axios + Supabase API
 │   │   │   └── 📄 supabase.js                   # Supabase client
 │   │   ├── 📂 contexts/                         # React contexts
 │   │   └── 📂 components/                       # Reusable components
@@ -258,7 +258,7 @@ curl -X POST http://localhost:8080/api/documents \
   "id": 1,
   "title": "Research Paper",
   "content": "This is the extracted text from the frontend...",
-  "createdAt": "2024-12-15T11:50:00Z"
+  "createdAt": "[TIMESTAMP]"
 }
 ```
 
@@ -280,19 +280,32 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 
 ## ✨ **Latest Features & Improvements**
 
+### **🚀 Dual-Mode Editor System**
+- ✅ **Rich Text Mode** - ReactQuill WYSIWYG editor with formatting toolbar
+- ✅ **Markdown Mode** - Full markdown editor with live preview and syntax highlighting
+- ✅ **Mode Switching** - Toggle between "RT" and "MD" modes seamlessly
+- ✅ **Live Preview** - Real-time markdown rendering with professional typography
+- ✅ **Formatting Toolbar** - Bold, italic, underline, lists, quotes, code blocks
+- ✅ **Keyboard Shortcuts** - Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (links)
+
 ### **🚀 Advanced Auto-Save System**
 - ✅ **Debounced Auto-Save** (2-second delay after typing stops)
 - ✅ **Smart Timing** - Saves when you pause, not while typing
+- ✅ **Draft Restoration** - URL parameter `?draft=true` restores previous sessions
 - ✅ **Visual Feedback** - Shows "Saving..." and "Draft saved" status
 - ✅ **Background Processing** - Doesn't interrupt writing flow
 
-### **📝 Rich Text Editor with AI**
-- ✅ **Formatting Toolbar** - Bold, italic, underline, lists, quotes
-- ✅ **Inline Grammar Panel** - Collapsible suggestions sidebar
+### **📝 Interactive Grammar Suggestions**
+- ✅ **Collapsible Suggestions Panel** - Right sidebar with AI grammar feedback
+- ✅ **Text Highlighting** - Hover over suggestions highlights corresponding text
+- ✅ **Inline Corrections** - Apply suggestions directly in editor
+- ✅ **Full Correction** - Apply complete AI-generated corrections
 - ✅ **AI-Powered Analysis** - Spelling, grammar, style suggestions
 - ✅ **Real-time Feedback** - Immediate analysis with detailed reports
 
 ### **📊 Smart Document Management**
+- ✅ **Document Hierarchy** - Create parent-child document relationships
+- ✅ **Child Documents** - Add child documents from parent documents
 - ✅ **Accurate Word Counts** - Backend calculation with character stats
 - ✅ **Legacy Data Migration** - Auto-updates old documents
 - ✅ **Document Statistics** - Words, characters, creation dates
@@ -303,6 +316,7 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 - ✅ **Toast Notifications** - User-friendly success/error messages
 - ✅ **Loading States** - Better user feedback throughout
 - ✅ **Error Handling** - Comprehensive error management
+- ✅ **Accessibility Features** - ARIA labels, keyboard navigation, screen reader support
 
 ## 🎯 **Complete SaaS Application Status**
 
@@ -318,6 +332,8 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 - ✅ **Production Ready** on Render with monitoring
 - ✅ **Enterprise Security** Rate limiting + error handling
 - ✅ **Professional UI** Tailwind CSS + responsive design
+- ✅ **WCAG Accessibility** ARIA labels, keyboard navigation, screen reader support
+- ✅ **Interactive Features** Text highlighting, focus management, skip links
 
 ## 📚 **Development Learning Path**
 
@@ -329,7 +345,7 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 5. ✅ **Docker & Deployment** - Containerization & cloud hosting
 
 ### **Intermediate (Full-Stack Development)**
-1. ✅ **React + TypeScript** - Modern frontend development
+1. ✅ **React** - Modern frontend development
 2. ✅ **Supabase Integration** - Auth + Database + Storage
 3. ✅ **Hybrid Architecture** - Frontend processing + backend storage
 4. ✅ **API Design** - RESTful endpoints with JWT security
@@ -345,7 +361,7 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 ### **🔥 What This Teaches You:**
 
 **Backend Excellence:**
-- Java 21/25 development vs Docker deployment
+- Java 21 development vs Docker deployment
 - Enterprise Spring Boot patterns (Config, Security, Metrics)
 - Hybrid file processing architecture
 - Database design with migrations
