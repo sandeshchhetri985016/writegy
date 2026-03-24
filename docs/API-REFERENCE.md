@@ -222,27 +222,45 @@ curl -X DELETE http://localhost:8080/api/documents/1
 
 ### **6. Document Hierarchy Management**
 ```http
-POST /api/documents/{id}/children
+GET /api/documents/tree
 ```
 
-**Description:** Create a child document under the specified parent document.
-
-**URL Parameters:**
-- `id` (integer): Parent document ID
-
-**Request Body:**
-```json
-{
-  "title": "Child Document Title",
-  "content": "Child document content"
-}
-```
+**Description:** Get the full document tree for the current user.
 
 **Example Request:**
 ```bash
-curl -X POST http://localhost:8080/api/documents/1/children \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Child Document","content":"This is a child document"}'
+curl http://localhost:8080/api/documents/tree
+```
+
+**Response (Success 200):**
+```json
+[
+  {
+    "id": 1,
+    "title": "Parent Document",
+    "content": "Parent content",
+    "depth": 0,
+    "treeOrder": 0,
+    "children": []
+  }
+]
+```
+
+```http
+POST /api/documents/{id}/parent
+```
+
+**Description:** Set the parent relationship for a document.
+
+**URL Parameters:**
+- `id` (integer): Document ID to update
+
+**Request Parameters:**
+- `parentId` (integer): Parent document ID
+
+**Example Request:**
+```bash
+curl -X POST "http://localhost:8080/api/documents/2/parent?parentId=1"
 ```
 
 **Response (Success 200):**
@@ -250,9 +268,36 @@ curl -X POST http://localhost:8080/api/documents/1/children \
 {
   "id": 2,
   "title": "Child Document",
-  "content": "This is a child document",
+  "content": "Child content",
   "parentId": 1,
-  "createdAt": "2025-12-12T10:30:00Z"
+  "depth": 1,
+  "treeOrder": 0
+}
+```
+
+```http
+DELETE /api/documents/{id}/parent
+```
+
+**Description:** Remove the parent relationship for a document (make it a root document).
+
+**URL Parameters:**
+- `id` (integer): Document ID to update
+
+**Example Request:**
+```bash
+curl -X DELETE http://localhost:8080/api/documents/2/parent
+```
+
+**Response (Success 200):**
+```json
+{
+  "id": 2,
+  "title": "Child Document",
+  "content": "Child content",
+  "parentId": null,
+  "depth": 0,
+  "treeOrder": 0
 }
 ```
 
@@ -290,40 +335,6 @@ curl http://localhost:8080/api/documents/1/children
 ]
 ```
 
-```http
-PUT /api/documents/{id}/parent
-```
-
-**Description:** Set or update the parent relationship for a document.
-
-**URL Parameters:**
-- `id` (integer): Document ID to update
-
-**Request Body:**
-```json
-{
-  "parentId": 1
-}
-```
-
-**Example Request:**
-```bash
-curl -X PUT http://localhost:8080/api/documents/3/parent \
-  -H "Content-Type: application/json" \
-  -d '{"parentId":1}'
-```
-
-**Response (Success 200):**
-```json
-{
-  "id": 3,
-  "title": "Updated Child Document",
-  "content": "Document with new parent",
-  "parentId": 1,
-  "createdAt": "2025-12-12T10:30:00Z"
-}
-```
-
 ### **7. Grammar Check (AI-Powered)**
 ```http
 POST /api/grammar/check
@@ -356,59 +367,6 @@ curl -X POST http://localhost:8080/api/grammar/check \
 - ✅ **Caching Enabled** - Faster responses for repeated checks
 - ✅ **Rate Limited** - 20 checks per hour per user
 - ✅ **Fallback Support** - Basic checks when AI unavailable
-
-### **8. Editor Mode Management**
-```http
-GET /api/editor/modes
-```
-
-**Description:** Get available editor modes (rich text and markdown).
-
-**Example Request:**
-```bash
-curl http://localhost:8080/api/editor/modes
-```
-
-**Response (Success 200):**
-```json
-{
-  "modes": ["rich-text", "markdown"],
-  "default": "rich-text"
-}
-```
-
-```http
-POST /api/editor/preview
-```
-
-**Description:** Preview markdown content as HTML for live preview functionality.
-
-**Request Body:**
-```json
-{
-  "markdown": "# Heading\n\nThis is **bold** text with *italic* formatting."
-}
-```
-
-**Example Request:**
-```bash
-curl -X POST http://localhost:8080/api/editor/preview \
-  -H "Content-Type: application/json" \
-  -d '{"markdown":"# Test\n\nThis is **markdown** content"}'
-```
-
-**Response (Success 200):**
-```json
-{
-  "html": "<h1>Test</h1>\n<p>This is <strong>markdown</strong> content</p>"
-}
-```
-
-**Features:**
-- ✅ **Live Preview** - Real-time markdown to HTML conversion
-- ✅ **Syntax Highlighting** - Code blocks with syntax highlighting
-- ✅ **GFM Support** - GitHub Flavored Markdown support
-- ✅ **Keyboard Shortcuts** - Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (links)
 
 ## 🔍 **Health & Monitoring Endpoints**
 

@@ -8,10 +8,16 @@ spring:
         format_sql: true
 
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/writegy}
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  devtools:
+    restart:
+      enabled: false
+    livereload:
+      enabled: false
 
   mail:
     host: localhost
@@ -24,14 +30,14 @@ languagetool:
 
 supabase:
   url: ${SUPABASE_URL}
-  key: ${SUPABASE_ANON_KEY}
+  key: ${SUPABASE_KEY:placeholder-key}
 
 cloudflare:
   r2:
-    endpoint: ${R2_ENDPOINT}
+    endpoint: ${R2_ENDPOINT:https://placeholder.r2.cloudflarestorage.com}
     bucket-name: writegy-dev
-    access-key: ${R2_ACCESS_KEY}
-    secret-key: ${R2_SECRET_KEY}
+    access-key: ${R2_ACCESS_KEY:placeholder-key}
+    secret-key: ${R2_SECRET_KEY:placeholder-secret}
 
 cors:
   allowed-origins: http://localhost:5173
@@ -40,6 +46,14 @@ cors:
 jwt:
   validation:
     strict: false                   # Allow fallback for development
+
+# OpenRouter AI Configuration
+openrouter:
+  api:
+    key: ${OPENROUTER_API_KEY:}
+  model: ${OPENROUTER_MODEL:meta-llama/llama-3.2-3b-instruct:free}
+  base:
+    url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
 
 logging:
   level:

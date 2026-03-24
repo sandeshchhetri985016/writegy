@@ -4,6 +4,7 @@ import com.writegy.dto.DocumentDTO;
 import com.writegy.dto.DocumentRequest;
 import com.writegy.model.entity.Document;
 import com.writegy.service.DocumentService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -94,7 +95,7 @@ public class DocumentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DocumentDTO> updateDocument(@PathVariable Long id, @RequestBody DocumentRequest request) {
+    public ResponseEntity<DocumentDTO> updateDocument(@PathVariable Long id, @Valid @RequestBody DocumentRequest request) {
         Document updatedDocument = documentService.updateDocument(id, request.getTitle(), request.getContent());
         DocumentDTO dto = mapToDTO(updatedDocument);
         return ResponseEntity.ok(dto);

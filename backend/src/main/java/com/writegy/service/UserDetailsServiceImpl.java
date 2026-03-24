@@ -25,7 +25,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         .authorities(new ArrayList<>())
                         .build())
                 .orElseGet(() -> {
-                    // Auto-create user on first login
+                    // Auto-create user if not found (for Supabase JWT users)
                     User newUser = createUserFromEmail(email);
                     return org.springframework.security.core.userdetails.User.withUsername(newUser.getEmail())
                             .password(newUser.getPassword() != null ? newUser.getPassword() : "")
@@ -38,23 +38,23 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         try {
             User user = new User();
             user.setEmail(email);
-
+            
             // Extract name from email (before @)
             String name = email.split("@")[0];
             // Capitalize first letter
             name = name.substring(0, 1).toUpperCase() + name.substring(1);
             user.setName(name);
-
+            
             // Generate a unique Supabase ID based on email
             user.setSupabaseId("supabase-" + email.replace("@", "-").replace(".", "-"));
-
-            user.setRole(UserRole.FREE);
+            
+            user.setRole(com.writegy.model.enums.UserRole.FREE);
             user.setIsEmailVerified(true); // Since they authenticated with Supabase
-
+            
             User savedUser = userRepository.save(user);
             System.out.println("Auto-created user: " + email);
             return savedUser;
-
+            
         } catch (Exception e) {
             System.err.println("Failed to create user for email: " + email + " - " + e.getMessage());
             throw new UsernameNotFoundException("Failed to create user account");

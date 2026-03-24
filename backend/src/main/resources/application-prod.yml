@@ -32,7 +32,7 @@ languagetool:
 
 supabase:
   url: ${SUPABASE_URL}
-  key: ${SUPABASE_KEY}
+  key: ${SUPABASE_KEY:placeholder-key}
 
 cloudflare:
   r2:

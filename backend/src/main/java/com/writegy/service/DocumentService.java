@@ -100,33 +100,60 @@ public class DocumentService {
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        // For demo purposes, create/use a demo user if not authenticated
-        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt)) {
-            return getOrCreateDemoUser();
+        if (authentication == null) {
+            throw new RuntimeException("Authentication required");
         }
 
-        Jwt jwt = (Jwt) authentication.getPrincipal();
-        String email = jwt.getClaimAsString("email");
+        String email = null;
+        Jwt jwt = null;
+
+        // Handle both Jwt principal and UserDetails principal
+        if (authentication.getPrincipal() instanceof Jwt) {
+            jwt = (Jwt) authentication.getPrincipal();
+            email = jwt.getClaimAsString("email");
+        } else if (authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails) {
+            // In dev mode, we set UserDetails as principal
+            org.springframework.security.core.userdetails.UserDetails userDetails = 
+                (org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal();
+            email = userDetails.getUsername();
+        } else {
+            throw new RuntimeException("Invalid authentication principal");
+        }
 
         if (email == null) {
-            return getOrCreateDemoUser();
+            throw new RuntimeException("Invalid JWT token: email claim missing");
         }
 
-        try {
-            return userRepository.findByEmail(email)
-                    .orElseGet(() -> createUserFromEmail(email, jwt));
-        } catch (Exception e) {
-            return getOrCreateDemoUser();
-        }
-    }
+        final String finalEmail = email;
+        final Jwt finalJwt = jwt;
 
-    private User getOrCreateDemoUser() {
-        String demoEmail = "demo@example.com";
-        return userRepository.findByEmail(demoEmail)
-                .orElseGet(() -> createUserFromEmail(demoEmail, null));
+        return userRepository.findByEmail(finalEmail)
+                .orElseGet(() -> createUserFromEmail(finalEmail, finalJwt));
     }
 
     private User createUserFromEmail(String email, Jwt jwt) {
+        // Extract Supabase user ID from JWT if available
+        String supabaseId = null;
+        if (jwt != null) {
+            supabaseId = jwt.getClaimAsString("sub");
+        }
+        if (supabaseId == null || supabaseId.isEmpty()) {
+            supabaseId = "demo-" + email.replace("@", "-");
+        }
+        
+        // Check if user already exists by email
+        java.util.Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            // Update supabaseId if it's different
+            if (!supabaseId.equals(user.getSupabaseId())) {
+                user.setSupabaseId(supabaseId);
+                return userRepository.save(user);
+            }
+            return user;
+        }
+        
+        // Create new user
         User user = new User();
         user.setEmail(email);
         
@@ -140,28 +167,33 @@ public class DocumentService {
         }
         
         user.setName(name);
-        
-        // Extract Supabase user ID from JWT if available
-        String supabaseId = null;
-        if (jwt != null) {
-            supabaseId = jwt.getClaimAsString("sub");
-        }
-        if (supabaseId == null || supabaseId.isEmpty()) {
-            supabaseId = "demo-" + email.replace("@", "-");
-        }
-        
         user.setSupabaseId(supabaseId);
         user.setRole(UserRole.FREE);
         return userRepository.save(user);
     }
 
     public Document getDocument(Long id) {
-        return documentRepository.findById(id).orElseThrow(() -> new RuntimeException("Document not found"));
+        User currentUser = getCurrentUser();
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Document not found"));
+
+        // Verify ownership
+        if (!document.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Not authorized to access this document");
+        }
+
+        return document;
     }
 
     public Document updateDocument(Long id, String title, String content) {
+        User currentUser = getCurrentUser();
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Document not found"));
+
+        // Verify ownership
+        if (!document.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Not authorized to update this document");
+        }
 
         document.setTitle(title);
         document.setContent(content);
@@ -173,6 +205,15 @@ public class DocumentService {
     }
 
     public void deleteDocument(Long id) {
+        User currentUser = getCurrentUser();
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Document not found"));
+
+        // Verify ownership
+        if (!document.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Not authorized to delete this document");
+        }
+
         documentRepository.deleteById(id);
     }
 
@@ -223,7 +264,11 @@ public class DocumentService {
                 return true;
             }
             Document current = documentRepository.findById(currentId).orElse(null);
-            currentId = current != null ? current.getParent() != null ? current.getParent().getId() : null : null;
+            if (current != null && current.getParent() != null) {
+                currentId = current.getParent().getId();
+            } else {
+                currentId = null;
+            }
         }
         return false;
     }

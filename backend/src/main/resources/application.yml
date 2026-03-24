@@ -64,12 +64,12 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SUPABASE_URL:https://placeholder.supabase.co}
-          jwk-set-uri: ${SUPABASE_URL:https://placeholder.supabase.co}/auth/v1/.well-known/jwks.json
+          issuer-uri: ${SUPABASE_URL}
+          jwk-set-uri: ${SUPABASE_URL}/auth/v1/.well-known/jwks.json
 
 # Supabase Configuration
 supabase:
-  url: ${SUPABASE_URL:https://gkegvqkxcqmishognlij.supabase.co}
+  url: ${SUPABASE_URL}
   key: ${SUPABASE_KEY:placeholder-key}
 
 # Cloudflare R2 Configuration

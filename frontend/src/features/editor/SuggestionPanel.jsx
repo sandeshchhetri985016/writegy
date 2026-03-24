@@ -23,13 +23,34 @@ const SuggestionPanel = ({ suggestions, onClose, onApplySuggestion, onApplyFullC
       let data = suggestions
 
       if (typeof suggestions === 'string') {
-        // Find the first '{' and the last '}' to extract JSON object
-        const start = suggestions.indexOf('{')
-        const end = suggestions.lastIndexOf('}')
-
-        if (start !== -1 && end !== -1 && end > start) {
-          const jsonString = suggestions.substring(start, end + 1)
-          data = JSON.parse(jsonString)
+        // Try to find and parse JSON object from the response
+        // Handle cases where response may contain multiple JSON objects or extra text
+        const jsonMatch = suggestions.match(/\{[\s\S]*\}/)
+        
+        if (jsonMatch) {
+          try {
+            data = JSON.parse(jsonMatch[0])
+          } catch (parseError) {
+            // If parsing fails, try to find balanced braces
+            const start = suggestions.indexOf('{')
+            let braceCount = 0
+            let end = -1
+            
+            for (let i = start; i < suggestions.length; i++) {
+              if (suggestions[i] === '{') braceCount++
+              if (suggestions[i] === '}') braceCount--
+              if (braceCount === 0) {
+                end = i
+                break
+              }
+            }
+            
+            if (end !== -1) {
+              data = JSON.parse(suggestions.substring(start, end + 1))
+            } else {
+              throw new Error('No valid JSON object found')
+            }
+          }
         } else {
           throw new Error('No JSON object found in response')
         }

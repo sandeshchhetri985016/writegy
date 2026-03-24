@@ -1,5 +1,7 @@
 package com.writegy.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentRequest {
+    @NotBlank(message = "Title is required")
+    @Size(max = 500, message = "Title must be less than 500 characters")
     private String title;
+
+    @Size(max = 1000000, message = "Content too large")
     private String content;
 
     // Manual getters/setters as fallback

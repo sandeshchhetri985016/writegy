@@ -62,7 +62,9 @@ public class JwtUtil {
                     throw new RuntimeException("Supabase URL is not configured");
                 }
                 // Try the correct Supabase JWK endpoint
+                System.out.println("DEBUG: Supabase URL: " + supabaseUrl);
                 URL jwkUrl = new URL(supabaseUrl + "/auth/v1/.well-known/jwks.json");
+                System.out.println("DEBUG: Loading JWK set from: " + jwkUrl);
                 this.jwkSet = JWKSet.load(jwkUrl);
                 System.out.println("Successfully loaded Supabase JWK set from: " + jwkUrl);
             } catch (Exception e) {

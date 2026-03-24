@@ -41,9 +41,9 @@ public class SecurityConfig {
                         auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers("/auth/**").permitAll()
                                 .requestMatchers("/actuator/health").permitAll()
-                                .requestMatchers("/api/grammar/**").permitAll() // Allow grammar check without auth
-                                .requestMatchers("/api/**").permitAll() // Allow demo access
-                                .anyRequest().permitAll() // Temporarily allow all to debug 403
+                                .requestMatchers("/api/documents/**").authenticated()
+                                .requestMatchers("/api/grammar/check").authenticated()
+                                .anyRequest().denyAll()
                 );
 
         // Add rate limiting filter
