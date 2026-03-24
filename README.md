@@ -288,6 +288,16 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 - ✅ **Formatting Toolbar** - Bold, italic, underline, lists, quotes, code blocks
 - ✅ **Keyboard Shortcuts** - Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (links)
 
+### **📄 Document Export System** ⭐ **NEW**
+- ✅ **PDF Export** - High-quality PDF generation using iText7
+- ✅ **DOCX Export** - Microsoft Word format using Apache POI
+- ✅ **Markdown Export** - Clean markdown syntax extraction
+- ✅ **Format Detection** - Automatic HTML/Markdown content detection
+- ✅ **Filename Format** - {title}-{timestamp}.{ext} naming convention
+- ✅ **Export UI** - Dropdown menu with 3 format options
+- ✅ **Progress Indicators** - Loading spinners during export
+- ✅ **Toast Notifications** - Success/error feedback messages
+
 ### **🚀 Advanced Auto-Save System**
 - ✅ **Debounced Auto-Save** (2-second delay after typing stops)
 - ✅ **Smart Timing** - Saves when you pause, not while typing
