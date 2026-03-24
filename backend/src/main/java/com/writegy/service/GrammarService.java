@@ -26,6 +26,15 @@ public class GrammarService {
     @Cacheable("grammar-checks")
     public String checkGrammar(String text) {
         System.out.println("DEBUG: Grammar check called with text: '" + text + "'");
+        System.out.println("DEBUG: API Key configured: " + (apiKey != null && !apiKey.isEmpty()));
+        System.out.println("DEBUG: Model: " + model);
+        System.out.println("DEBUG: Base URL: " + baseUrl);
+
+        // Check if API key is configured
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            System.out.println("DEBUG: OpenRouter API key not configured, using fallback");
+            return performBasicGrammarCheck(text);
+        }
 
         try {
             // Create AI prompt for grammar checking
@@ -36,15 +45,27 @@ public class GrammarService {
             String aiResponse = callOpenRouterAPI(prompt);
             System.out.println("DEBUG: OpenRouter API response received: " + aiResponse);
 
-            // Parse and format the response
-            String formattedResponse = formatGrammarSuggestions(aiResponse);
-            System.out.println("DEBUG: Formatted response: " + formattedResponse);
+            // Validate response is JSON
+            if (aiResponse == null || aiResponse.trim().isEmpty()) {
+                System.out.println("DEBUG: Empty response from API, using fallback");
+                return performBasicGrammarCheck(text);
+            }
 
-            return formattedResponse;
+            // Try to parse as JSON to validate
+            try {
+                objectMapper.readTree(aiResponse);
+                System.out.println("DEBUG: Response is valid JSON");
+                return aiResponse;
+            } catch (Exception jsonError) {
+                System.out.println("DEBUG: Response is not valid JSON, wrapping in fallback format: " + jsonError.getMessage());
+                // If not valid JSON, wrap the response in our fallback format
+                return createFallbackJsonResponse(aiResponse, text);
+            }
 
         } catch (Exception e) {
             // Fallback to basic checks if AI fails
             System.out.println("DEBUG: OpenRouter API failed, using fallback. Error: " + e.getMessage());
+            e.printStackTrace();
             return performBasicGrammarCheck(text);
         }
     }
@@ -118,19 +139,23 @@ public class GrammarService {
     private String performBasicGrammarCheck(String text) {
         System.out.println("DEBUG: Performing basic grammar check on text: '" + text + "'");
 
+        // Strip HTML tags for basic check
+        String plainText = text.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+        System.out.println("DEBUG: Plain text after HTML stripping: '" + plainText + "'");
+
         // Basic fallback checks
         StringBuilder suggestions = new StringBuilder();
-        String lowerText = text.toLowerCase();
+        String lowerText = plainText.toLowerCase();
 
         System.out.println("DEBUG: Lower case text: '" + lowerText + "'");
 
         // Simple checks as fallback
-        if (text.contains("  ")) {
+        if (plainText.contains("  ")) {
             suggestions.append("• Multiple spaces detected\n");
             System.out.println("DEBUG: Found multiple spaces");
         }
 
-        if (!text.matches(".*[.!?]\\s*$")) {
+        if (!plainText.matches(".*[.!?]\\s*$")) {
             suggestions.append("• Consider ending with proper punctuation\n");
             System.out.println("DEBUG: Missing ending punctuation");
         }
@@ -161,6 +186,22 @@ public class GrammarService {
             System.out.println("DEBUG: Found 'grammer' in text");
         }
 
+        // Check for capitalization issues
+        if (plainText.matches(".*[a-z][A-Z].*")) {
+            suggestions.append("• Inconsistent capitalization detected\n");
+            System.out.println("DEBUG: Found capitalization issues");
+        }
+
+        // Check for repeated words
+        String[] words = plainText.split("\\s+");
+        for (int i = 0; i < words.length - 1; i++) {
+            if (words[i].equalsIgnoreCase(words[i + 1]) && !words[i].isEmpty()) {
+                suggestions.append("• Repeated word: '").append(words[i]).append("'\n");
+                System.out.println("DEBUG: Found repeated word: " + words[i]);
+                break;
+            }
+        }
+
         String result = suggestions.length() > 0 ?
             "Basic grammar check found some issues:\n" + suggestions.toString() :
             "Basic grammar check passed. AI analysis unavailable.";
@@ -187,6 +228,39 @@ public class GrammarService {
             case "neccessary": return "necessary";
             case "anc": return "and";
             default: return "[correct spelling]";
+        }
+    }
+
+    /**
+     * Create a fallback JSON response when the AI returns non-JSON text
+     */
+    private String createFallbackJsonResponse(String aiResponse, String originalText) {
+        try {
+            // Create a simple JSON response with the AI's text as a suggestion
+            return String.format("""
+                {
+                  "corrected": "%s",
+                  "suggestions": [
+                    {
+                      "original": "AI Analysis",
+                      "replacement": "%s",
+                      "explanation": "The AI provided analysis but not in the expected JSON format"
+                    }
+                  ]
+                }
+                """, 
+                originalText.replace("\"", "\\\"").replace("\n", "\\n"),
+                aiResponse.replace("\"", "\\\"").replace("\n", "\\n")
+            );
+        } catch (Exception e) {
+            System.out.println("DEBUG: Failed to create fallback JSON: " + e.getMessage());
+            // Return a basic JSON structure
+            return """
+                {
+                  "corrected": "Analysis unavailable",
+                  "suggestions": []
+                }
+                """;
         }
     }
 }

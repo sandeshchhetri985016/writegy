@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { documentApi, grammarApi } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
@@ -27,6 +27,30 @@ import MarkdownEditor from './MarkdownEditor'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import DocumentExport from './DocumentExport'
+
+// Wrapper component for ReactQuill to avoid findDOMNode warning
+// Note: ReactQuill internally uses findDOMNode which is deprecated in React 18
+// This is a known limitation of react-quill with React 18
+const QuillWrapper = forwardRef((props, ref) => {
+  const containerRef = useRef(null)
+  
+  // Use callback ref to set the ref
+  useEffect(() => {
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(containerRef.current)
+      } else {
+        ref.current = containerRef.current
+      }
+    }
+  }, [ref])
+  
+  return (
+    <div ref={containerRef}>
+      <ReactQuill {...props} />
+    </div>
+  )
+})
 
 const TextEditor = () => {
   const { id } = useParams()
@@ -656,7 +680,7 @@ const TextEditor = () => {
                 className="h-[calc(100vh-320px)]"
               />
             ) : (
-              <ReactQuill
+              <QuillWrapper
                 ref={quillRef}
                 theme="snow"
                 value={document.content}
