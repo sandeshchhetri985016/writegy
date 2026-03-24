@@ -168,6 +168,36 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- Dotenv for loading .env files in development -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+        <!-- Document Export Dependencies -->
+        <!-- Jsoup for HTML parsing -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
+
+        <!-- iText7 for PDF generation -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itext7-core</artifactId>
+            <version>8.0.2</version>
+            <type>pom</type>
+        </dependency>
+
+        <!-- Apache POI for DOCX generation -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -26,6 +26,7 @@ import SuggestionPanel from './SuggestionPanel'
 import MarkdownEditor from './MarkdownEditor'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import DocumentExport from './DocumentExport'
 
 const TextEditor = () => {
   const { id } = useParams()
@@ -89,14 +90,21 @@ const TextEditor = () => {
               title: draft.title || '',
               content: draft.content || ''
             })
-            toast.success('Draft restored from previous session')
+            
+            // ✅ FIX: Restore document ID if it exists to prevent duplicate creation
+            if (draft.documentId) {
+              // Navigate to the correct document URL with draft=true parameter
+              navigate(`/editor/${draft.documentId}?draft=true`, { replace: true })
+            } else {
+              toast.success('Draft restored from previous session')
+            }
           }
         } catch (error) {
           console.warn('Failed to restore draft:', error)
         }
       }
     }
-  }, [user, id, shouldRestoreDraft])
+  }, [user, id, shouldRestoreDraft, navigate])
 
   // Debounced auto-save (saves 2 seconds after user stops typing)
   useEffect(() => {
@@ -132,6 +140,7 @@ const TextEditor = () => {
     try {
       const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
       const draft = {
+        documentId: id,  // ✅ FIX: Store the document ID to prevent duplicate creation
         title: document.title,
         content: document.content,
         timestamp: new Date().toISOString()
@@ -583,6 +592,15 @@ const TextEditor = () => {
                 </>
               )}
             </button>
+
+            {/* Export Button */}
+            {id && (
+              <DocumentExport
+                documentId={id}
+                documentTitle={document.title}
+                disabled={!id || loading}
+              />
+            )}
           </div>
         </div>
       </header>
