@@ -1,0 +1,46 @@
+# Writegy Prometheus Configuration
+# Production monitoring for Spring Boot backend
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Spring Boot Actuator metrics
+  - job_name: 'writegy-backend'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['localhost:8080']
+        labels:
+          application: 'writegy-backend'
+          environment: 'production'
+
+  # System metrics (if node_exporter is available)
+  - job_name: 'system-metrics'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          instance: 'writegy-server'
+
+  # Database connection pool metrics
+  - job_name: 'database-pool'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:8080']
+        labels:
+          application: 'writegy-backend'
+          component: 'database'
+
+# Alerting rules (optional - can be expanded)
+rule_files:
+  # - "alert_rules.yml"
+
+# Remote write configuration (for external monitoring services)
+# remote_write:
+#   - url: "https://your-monitoring-service/api/v1/write"
+#     basic_auth:
+#       username: "your-username"
+#       password: "your-password"
