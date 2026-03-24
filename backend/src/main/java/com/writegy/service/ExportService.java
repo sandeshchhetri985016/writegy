@@ -436,9 +436,15 @@ public class ExportService {
                     break;
                 case "pre":
                 case "code":
-                    pdfDoc.add(new com.itextpdf.layout.element.Paragraph(child.text())
-                        .setFont(com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.COURIER))
-                        .setFontSize(10));
+                    try {
+                        pdfDoc.add(new com.itextpdf.layout.element.Paragraph(child.text())
+                            .setFont(com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.COURIER))
+                            .setFontSize(10));
+                    } catch (java.io.IOException e) {
+                        // Fallback to default font if Courier font fails to load
+                        pdfDoc.add(new com.itextpdf.layout.element.Paragraph(child.text())
+                            .setFontSize(10));
+                    }
                     break;
                 default:
                     // Process children for unknown elements
@@ -487,7 +493,7 @@ public class ExportService {
                     run.setFontSize(10);
                     break;
                 case "p":
-                    processInlineElementsForDocx(child, run);
+                    processInlineElementsForDocx(child, paragraph);
                     break;
                 case "ul":
                     for (Element li : child.children()) {
@@ -527,38 +533,38 @@ public class ExportService {
         }
     }
 
-    private void processInlineElementsForDocx(Element element, org.apache.poi.xwpf.usermodel.XWPFRun run) {
+    private void processInlineElementsForDocx(Element element, org.apache.poi.xwpf.usermodel.XWPFParagraph paragraph) {
         for (org.jsoup.nodes.Node node : element.childNodes()) {
             if (node instanceof TextNode textNode) {
+                org.apache.poi.xwpf.usermodel.XWPFRun run = paragraph.createRun();
                 run.setText(textNode.text());
             } else if (node instanceof Element childElement) {
                 String tagName = childElement.tagName().toLowerCase();
                 switch (tagName) {
                     case "strong", "b":
-                        org.apache.poi.xwpf.usermodel.XWPFRun boldRun = element.parent() instanceof org.apache.poi.xwpf.usermodel.XWPFParagraph 
-                            ? ((org.apache.poi.xwpf.usermodel.XWPFParagraph) element.parent()).createRun() 
-                            : run;
+                        org.apache.poi.xwpf.usermodel.XWPFRun boldRun = paragraph.createRun();
                         boldRun.setText(childElement.text());
                         boldRun.setBold(true);
                         break;
                     case "em", "i":
-                        org.apache.poi.xwpf.usermodel.XWPFRun italicRun = element.parent() instanceof org.apache.poi.xwpf.usermodel.XWPFParagraph 
-                            ? ((org.apache.poi.xwpf.usermodel.XWPFParagraph) element.parent()).createRun() 
-                            : run;
+                        org.apache.poi.xwpf.usermodel.XWPFRun italicRun = paragraph.createRun();
                         italicRun.setText(childElement.text());
                         italicRun.setItalic(true);
                         break;
                     case "code":
-                        run.setText(childElement.text());
-                        run.setFontFamily("Courier New");
+                        org.apache.poi.xwpf.usermodel.XWPFRun codeRun = paragraph.createRun();
+                        codeRun.setText(childElement.text());
+                        codeRun.setFontFamily("Courier New");
                         break;
                     case "a":
-                        run.setText(childElement.text());
-                        run.setColor("0563C1");
-                        run.setUnderline(org.apache.poi.xwpf.usermodel.UnderlinePatterns.SINGLE);
+                        org.apache.poi.xwpf.usermodel.XWPFRun linkRun = paragraph.createRun();
+                        linkRun.setText(childElement.text());
+                        linkRun.setColor("0563C1");
+                        linkRun.setUnderline(org.apache.poi.xwpf.usermodel.UnderlinePatterns.SINGLE);
                         break;
                     default:
-                        run.setText(childElement.text());
+                        org.apache.poi.xwpf.usermodel.XWPFRun defaultRun = paragraph.createRun();
+                        defaultRun.setText(childElement.text());
                         break;
                 }
             }

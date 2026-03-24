@@ -74,3 +74,6 @@ Thumbs.db
 writegy-iml/
 *.iml
 .clinerules/accessibility-security-first.md
+
+# Frontend build output
+frontend/dist
