@@ -42,7 +42,7 @@ public class SecurityConfig {
                                 .requestMatchers("/auth/**").permitAll()
                                 .requestMatchers("/actuator/health").permitAll()
                                 .requestMatchers("/api/documents/**").authenticated()
-                                .requestMatchers("/api/grammar/check").authenticated()
+                                .requestMatchers("/api/grammar/check").permitAll()  // Allow public access for grammar check
                                 .anyRequest().denyAll()
                 );
 
