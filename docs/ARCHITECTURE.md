@@ -352,6 +352,86 @@ docker build -t writegy-backend .
 
 ---
 
+## ✨ **Grammar Service Architecture**
+
+### **GrammarService.java**
+```java
+@Service
+public class GrammarService {
+
+    @Value("${openrouter.api.key}")
+    private String apiKey;
+
+    @Value("${openrouter.model}")
+    private String model;
+
+    @Value("${openrouter.base.url}")
+    private String baseUrl;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public String checkGrammar(String text) {
+        // Create AI prompt for grammar checking
+        String prompt = createGrammarPrompt(text);
+
+        // Call OpenRouter API
+        String aiResponse = callOpenRouterAPI(prompt);
+
+        // Validate response is JSON
+        if (aiResponse == null || aiResponse.trim().isEmpty()) {
+            return performBasicGrammarCheck(text);
+        }
+
+        // Try to parse as JSON to validate
+        try {
+            // Strip markdown code blocks if present (```json ... ```)
+            String cleanedResponse = aiResponse.trim();
+            cleanedResponse = cleanedResponse.replaceAll("(?i)^```json\\s*", "");
+            cleanedResponse = cleanedResponse.replaceAll("^```\\s*", "");
+            cleanedResponse = cleanedResponse.replaceAll("\\s*```\\s*$", "");
+            cleanedResponse = cleanedResponse.trim();
+            
+            JsonNode parsed = objectMapper.readTree(cleanedResponse);
+            
+            // 🔥 Detect nested JSON inside "replacement" (check ALL suggestions)
+            if (parsed.has("suggestions") && parsed.get("suggestions").isArray()) {
+                for (JsonNode suggestion : parsed.get("suggestions")) {
+                    if (suggestion.has("replacement")) {
+                        String replacement = suggestion.get("replacement").asText();
+                        
+                        // Detect inner JSON
+                        if (replacement.contains("\"suggestions\"")) {
+                            try {
+                                JsonNode inner = objectMapper.readTree(replacement);
+                                return inner.toString(); // ✅ return clean JSON
+                            } catch (Exception e) {
+                                // Failed to parse inner JSON
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return parsed.toString(); // normalized JSON
+        } catch (Exception jsonError) {
+            // If not valid JSON, return empty suggestions instead of injecting raw text
+            return "{\"suggestions\":[]}";
+        }
+    }
+}
+```
+
+### **Key Features:**
+- ✅ **Suggestions Only** - Returns improvement suggestions (not full corrected text)
+- ✅ **Apply Fix Functionality** - Each suggestion can be applied individually
+- ✅ **Code/JSON/HTML Support** - Handles escaped characters in suggestions
+- ✅ **Nested JSON Handling** - Robust parsing for complex AI responses
+- ✅ **All Errors** - Finds all grammar, spelling, and style issues
+- ✅ **Extended Timeout** - 180s timeout for free AI models
+
+---
+
 ## 🧠 **Architectural Principles**
 
 ### **Keep It Simple:**

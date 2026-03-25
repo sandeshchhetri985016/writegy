@@ -288,6 +288,15 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 - ✅ **Formatting Toolbar** - Bold, italic, underline, lists, quotes, code blocks
 - ✅ **Keyboard Shortcuts** - Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (links)
 
+### **✨ Advanced Grammar Check System** ⭐ **NEW**
+- ✅ **Suggestions Only** - Returns improvement suggestions (not full corrected text)
+- ✅ **Apply Fix Functionality** - Each suggestion can be applied individually
+- ✅ **Code/JSON/HTML Support** - Handles escaped characters in suggestions
+- ✅ **Nested JSON Handling** - Robust parsing for complex AI responses
+- ✅ **All Errors** - Finds all grammar, spelling, and style issues
+- ✅ **AI-Powered** - Uses OpenRouter free models for analysis
+- ✅ **Extended Timeout** - 180s timeout for free AI models
+
 ### **📄 Document Export System** ⭐ **NEW**
 - ✅ **PDF Export** - High-quality PDF generation using iText7
 - ✅ **DOCX Export** - Microsoft Word format using Apache POI

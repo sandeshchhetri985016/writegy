@@ -87,3 +87,68 @@ frontend/src/
 ✓ Document ownership respected
 ✓ No duplicate documents created
 ✓ Works for both Rich Text and Markdown editor modes
+
+---
+
+## 📝 Changelog
+
+### v1.1.0 - Grammar Check Improvements (2026-03-26)
+
+#### ✨ New Features
+
+**Grammar Check System:**
+- ✅ **Suggestions Only** - Returns improvement suggestions (not full corrected text)
+- ✅ **Apply Fix Functionality** - Each suggestion can be applied individually
+- ✅ **Code/JSON/HTML Support** - Handles escaped characters in suggestions
+- ✅ **Nested JSON Handling** - Robust parsing for complex AI responses
+- ✅ **All Errors** - Finds all grammar, spelling, and style issues
+- ✅ **Extended Timeout** - 180s timeout for free AI models
+
+**Frontend Improvements:**
+- ✅ Increased Axios timeout from 60s to 180s for free AI models
+- ✅ Fixed "Apply Fix" for code/JSON/HTML by unescaping strings
+- ✅ Removed "Corrected Version" section from SuggestionPanel
+- ✅ Updated API-REFERENCE.md with new grammar check response format
+
+**Backend Improvements:**
+- ✅ Added DotEnvConfig for environment variable configuration
+- ✅ Improved JSON stripping logic for markdown code blocks
+- ✅ Added nested JSON detection and unwrapping
+- ✅ Fixed dangerous fallback that was injecting raw AI response
+- ✅ Improved prompt to prevent nested JSON and request all errors
+
+#### 📁 Files Changed
+
+**Backend:**
+- `GrammarService.java` - Improved JSON handling and prompt
+- `DotEnvConfig.java` - New environment configuration
+- `application.yml` - Updated configuration
+
+**Frontend:**
+- `api.js` - Increased timeout to 180s
+- `TextEditor.jsx` - Fixed string unescaping for Apply Fix
+- `SuggestionPanel.jsx` - Removed corrected text section
+
+**Documentation:**
+- `README.md` - Added grammar check improvements
+- `API-REFERENCE.md` - Updated grammar check API documentation
+- `ARCHITECTURE.md` - Added Grammar Service architecture section
+- `FILE_STRUCTURE.md` - Added DotEnvConfig.java
+
+#### 🔧 Technical Details
+
+**JSON Handling:**
+- Strip markdown code blocks using regex
+- Detect nested JSON inside "replacement" field
+- Unwrap nested JSON when found
+- Return empty suggestions for invalid responses
+
+**Prompt Improvements:**
+- Added rule: "Do NOT include nested JSON"
+- Added rule: "If unable to provide suggestions, return: {"suggestions":[]}"
+- Emphasized escaping quotes in string values
+
+**Frontend Fixes:**
+- Unescape `\"` to `"` before searching for text
+- Unescape `\n` to newline character
+- Unescape `\t` to tab character

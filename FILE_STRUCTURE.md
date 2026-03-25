@@ -64,6 +64,7 @@ backend/src/main/java/com/writegy/
 config/
 ├── CorsConfig.java [CORS configuration allowing localhost origins and Supabase domain, sets allowed methods and headers]
 ├── DatabaseConfig.java [Database configuration class for datasource and connection settings]
+├── DotEnvConfig.java ⭐ NEW - Environment variable configuration loader for .env file support
 ├── GlobalExceptionHandler.java [Global exception handler for REST API errors, handles validation, runtime, and generic exceptions]
 ├── JpaConfig.java [JPA configuration enabling JPA auditing for automatic createdAt/updatedAt timestamps]
 ├── JwtAuthenticationFilter.java [JWT filter that validates Supabase JWT tokens from Authorization header, extracts user info]

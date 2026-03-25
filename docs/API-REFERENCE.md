@@ -340,7 +340,7 @@ curl http://localhost:8080/api/documents/1/children
 POST /api/grammar/check
 ```
 
-**Description:** Analyze text for grammar errors, spelling mistakes, punctuation issues, and writing style suggestions using AI.
+**Description:** Analyze text for grammar errors, spelling mistakes, punctuation issues, and writing style suggestions using AI. Returns improvement suggestions with "Apply Fix" functionality.
 
 **Request Body:**
 ```json
@@ -358,15 +358,36 @@ curl -X POST http://localhost:8080/api/grammar/check \
 
 **Response (Success 200):**
 ```json
-"AI Grammar Analysis:\n**Analysis Report**\n\n**1. Grammar Errors and Spelling Mistakes**\n\n* \"anc\" should be spelled as \"and\"\n* \"grammer\" should be spelled as \"grammar\"\n\n**2. Punctuation Issues**\n\n* The text lacks punctuation, making it difficult to understand. Consider adding commas, periods, or other punctuation marks to separate ideas and improve clarity.\n\n..."
+{
+  "suggestions": [
+    {
+      "original": "This is the body text to save anc check grammer",
+      "replacement": "This is the body text to save and check grammar",
+      "explanation": "Corrected spelling of 'anc' to 'and' and 'grammer' to 'grammar'"
+    },
+    {
+      "original": "today i wake up late",
+      "replacement": "Today, I woke up late",
+      "explanation": "Capitalized the first word and corrected verb tense"
+    }
+  ]
+}
 ```
+
+**Response Format:**
+- `suggestions` (array): List of improvement suggestions
+  - `original` (string): Original text to be replaced
+  - `replacement` (string): Improved version of the text
+  - `explanation` (string): Brief explanation of the improvement
 
 **Features:**
 - ✅ **AI-Powered Analysis** - Grammar, spelling, style suggestions
-- ✅ **Comprehensive Feedback** - Detailed actionable recommendations
+- ✅ **Suggestions Only** - Returns improvement suggestions (not full corrected text)
+- ✅ **Apply Fix** - Each suggestion can be applied individually
 - ✅ **Caching Enabled** - Faster responses for repeated checks
 - ✅ **Rate Limited** - 20 checks per hour per user
 - ✅ **Fallback Support** - Basic checks when AI unavailable
+- ✅ **Code/JSON/HTML Support** - Handles escaped characters in suggestions
 
 ## 🔍 **Health & Monitoring Endpoints**
 
