@@ -28,29 +28,57 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import DocumentExport from './DocumentExport'
 
+// Custom styles for Quill editor to increase font size
+const quillStyles = `
+  .ql-editor {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .ql-toolbar {
+    font-size: 14px;
+  }
+`
+
 // Wrapper component for ReactQuill to avoid findDOMNode warning
 // Note: ReactQuill internally uses findDOMNode which is deprecated in React 18
 // This is a known limitation of react-quill with React 18
 const QuillWrapper = forwardRef((props, ref) => {
-  const containerRef = useRef(null)
+  const quillRef = useRef(null)
   
-  // Use callback ref to set the ref
+  // Expose the Quill editor instance to the parent
   useEffect(() => {
     if (ref) {
       if (typeof ref === 'function') {
-        ref(containerRef.current)
+        ref(quillRef.current)
       } else {
-        ref.current = containerRef.current
+        ref.current = quillRef.current
       }
     }
   }, [ref])
   
   return (
-    <div ref={containerRef}>
-      <ReactQuill {...props} />
-    </div>
+    <ReactQuill {...props} ref={quillRef} modules={quillModules} />
   )
 })
+
+// Custom Quill modules configuration
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+    [{ 'font': [] }],
+    [{ 'size': ['small', false, 'large', 'huge'] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'script': 'sub'}, { 'script': 'super' }],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'indent': '-1'}, { 'indent': '+1' }],
+    [{ 'direction': 'rtl' }],
+    [{ 'align': [] }],
+    ['blockquote', 'code-block'],
+    ['link', 'image', 'video'],
+    ['clean']
+  ]
+}
 
 const TextEditor = () => {
   const { id } = useParams()
@@ -58,6 +86,21 @@ const TextEditor = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const fileInputRef = useRef(null)
+
+  // Inject custom Quill styles
+  useEffect(() => {
+    // Check if we're in a browser environment
+    if (typeof document !== 'undefined' && document.head) {
+      const style = document.createElement('style')
+      style.textContent = quillStyles
+      document.head.appendChild(style)
+      return () => {
+        if (document.head && document.head.contains(style)) {
+          document.head.removeChild(style)
+        }
+      }
+    }
+  }, [])
 
   // Check if draft should be restored (only when explicitly requested)
   const shouldRestoreDraft = searchParams.get('draft') === 'true'
@@ -373,11 +416,16 @@ const TextEditor = () => {
     // Replace the specific text in the content
     // Note: This is a simple string replacement. For more complex rich text,
     // we would use Quill's selection API, but this works for the current state structure.
-    if (!document.content.includes(original)) {
+    
+    // Unescape the original string to handle escaped quotes from JSON
+    const unescapedOriginal = original.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
+    const unescapedReplacement = replacement.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
+    
+    if (!document.content.includes(unescapedOriginal)) {
       toast.error('Could not find the original text to replace')
       return
     }
-    const newContent = document.content.replace(original, replacement)
+    const newContent = document.content.replace(unescapedOriginal, unescapedReplacement)
     setDocument(prev => ({ ...prev, content: newContent }))
 
     // Track that this specific suggestion has been applied
@@ -397,36 +445,15 @@ const TextEditor = () => {
 
     try {
       const quill = quillRef.current.getEditor()
-      const content = quill.getContents()
       const text = quill.getText()
 
       // Find the position of the original text in the plain text
       const index = text.indexOf(originalText.trim())
       if (index === -1) return
 
-      // Convert plain text position to Delta position
-      let charCount = 0
-      let opsIndex = 0
-
-      for (let i = 0; i < content.ops.length; i++) {
-        const op = content.ops[i]
-        if (typeof op.insert === 'string') {
-          const opLength = op.insert.length
-          if (charCount <= index && charCount + opLength > index) {
-            opsIndex = i
-            break
-          }
-          charCount += opLength
-        }
-      }
-
-      // Set the selection to highlight the text
-      const startIndex = index
-      const endIndex = index + originalText.trim().length
-      quill.setSelection(startIndex, endIndex - startIndex)
-
-      // Apply highlighting format
-      quill.format('background', '#fef3c7') // Light yellow background
+      // Apply highlighting format directly without setting selection
+      // This avoids the blue selection highlight
+      quill.formatText(index, originalText.trim().length, 'background', '#fef3c7') // Light yellow background
     } catch (error) {
       console.warn('Failed to highlight text:', error)
     }
@@ -438,11 +465,9 @@ const TextEditor = () => {
     try {
       const quill = quillRef.current.getEditor()
 
-      // Remove any existing background highlighting
-      const range = quill.getSelection()
-      if (range) {
-        quill.format('background', false)
-      }
+      // Remove all background highlighting from the entire document
+      const length = quill.getLength()
+      quill.formatText(0, length, 'background', false)
     } catch (error) {
       console.warn('Failed to unhighlight text:', error)
     }
@@ -519,9 +544,9 @@ const TextEditor = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4" role="banner">
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0" role="banner">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
@@ -543,7 +568,7 @@ const TextEditor = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             {/* Word/Character Count */}
             <div className="text-sm text-gray-600">
               {wordCount} words • {charCount} characters
@@ -558,10 +583,10 @@ const TextEditor = () => {
             )}
 
             {/* Editor Mode Toggle */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <button
                 onClick={() => setEditorMode(editorMode === 'rich-text' ? 'markdown' : 'rich-text')}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`px-2 py-1 text-sm font-medium rounded-md transition-colors ${
                   editorMode === 'markdown'
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -575,19 +600,19 @@ const TextEditor = () => {
             {/* Preview Toggle */}
             <button
               onClick={() => setPreviewMode(!previewMode)}
-              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="flex items-center px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              {previewMode ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+              {previewMode ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
               {previewMode ? 'Edit' : 'Preview'}
             </button>
 
             {/* File Upload */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="flex items-center px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               disabled={loading}
             >
-              <Upload className="w-4 h-4 mr-2" />
+              <Upload className="w-4 h-4 mr-1" />
               Upload
             </button>
             <input
@@ -602,16 +627,16 @@ const TextEditor = () => {
             <button
               onClick={handleSave}
               disabled={saving || !document.title.trim()}
-              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-3 py-1 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span className="ml-2">Saving...</span>
+                  <span className="ml-1">Saving...</span>
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className="w-4 h-4 mr-1" />
                   Save
                 </>
               )}
@@ -630,10 +655,10 @@ const TextEditor = () => {
       </header>
 
       {/* Editor */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex overflow-hidden">
         {/* Formatting Toolbar */}
         {!previewMode && (
-          <div className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-2">
+          <div className="w-12 bg-white border-r border-gray-200 flex flex-col items-center py-3 space-y-2 flex-shrink-0">
             <button
               onClick={handleGrammarCheck}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
@@ -656,20 +681,20 @@ const TextEditor = () => {
         )}
 
         {/* Editor Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Title Input */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
             <input
               type="text"
               placeholder="Document Title..."
               value={document.title}
               onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full text-2xl font-bold text-gray-900 border-none outline-none placeholder-gray-400"
+              className="w-full text-xl font-bold text-gray-900 border-none outline-none placeholder-gray-400"
             />
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-4 overflow-hidden">
             {previewMode ? (
               renderPreview(document.content)
             ) : editorMode === 'markdown' ? (
@@ -677,7 +702,7 @@ const TextEditor = () => {
                 value={document.content}
                 onChange={(content) => setDocument(prev => ({ ...prev, content }))}
                 placeholder="Start writing in Markdown..."
-                className="h-[calc(100vh-320px)]"
+                className="h-full"
               />
             ) : (
               <QuillWrapper
@@ -685,7 +710,7 @@ const TextEditor = () => {
                 theme="snow"
                 value={document.content}
                 onChange={(content) => setDocument(prev => ({ ...prev, content }))}
-                className="h-[calc(100vh-300px)]"
+                className="h-full"
                 placeholder="Start writing your document..."
               />
             )}

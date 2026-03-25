@@ -80,11 +80,11 @@ cloudflare:
     secret-key: ${R2_SECRET_KEY:placeholder-secret}
     endpoint: ${R2_ENDPOINT:https://placeholder.r2.cloudflarestorage.com}
 
-# OpenRouter AI Configuration
+# OpenRouter AI Configuration (using free router for automatic failover)
 openrouter:
   api:
     key: ${OPENROUTER_API_KEY:}
-  model: ${OPENROUTER_MODEL:meta-llama/llama-3.2-3b-instruct:free}
+  model: ${OPENROUTER_MODEL:openrouter/free}
   base:
     url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
 

@@ -1,0 +1,2 @@
+# Register DotEnvConfig as ApplicationContextInitializer
+org.springframework.context.ApplicationContextInitializer=com.writegy.config.DotEnvConfig

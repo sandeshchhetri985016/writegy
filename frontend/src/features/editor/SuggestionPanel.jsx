@@ -65,7 +65,7 @@ const SuggestionPanel = ({ suggestions, onClose, onApplySuggestion, onApplyFullC
 
   if (!parsedData) return null
 
-  const isStructured = !parsedData.raw && (parsedData.suggestions || parsedData.corrected)
+  const isStructured = !parsedData.raw && parsedData.suggestions
 
   const renderFormattedText = (text) => {
     if (!text) return null
@@ -84,8 +84,8 @@ const SuggestionPanel = ({ suggestions, onClose, onApplySuggestion, onApplyFullC
         )
       }
 
-      // List items
-      if (trimmed.startsWith('* ')) {
+      // List items (support both * and - formats)
+      if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
         return (
           <div key={index} className="flex items-start mb-2 ml-2">
             <span className="mr-2 mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-400" aria-hidden="true" />
@@ -127,21 +127,6 @@ const SuggestionPanel = ({ suggestions, onClose, onApplySuggestion, onApplyFullC
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {isStructured ? (
           <>
-            {/* Full Document Correction */}
-            {parsedData.corrected && (
-              <div className="pb-4 border-b border-gray-100">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Corrected Version</h4>
-                <button
-                  onClick={() => onApplyFullCorrection(parsedData.corrected)}
-                  className="w-full flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                  aria-label="Replace entire document text with the corrected version"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
-                  Replace Entire Text
-                </button>
-              </div>
-            )}
-
             {/* Individual Suggestions */}
             {parsedData.suggestions && parsedData.suggestions.length > 0 && (
               <div>
