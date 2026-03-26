@@ -302,12 +302,6 @@ curl http://localhost:8080/api/documents
 # Test document hierarchy endpoints
 curl http://localhost:8080/api/documents/1/children
 
-# Test editor mode endpoints
-curl http://localhost:8080/api/editor/modes
-curl -X POST http://localhost:8080/api/editor/preview \
-  -H "Content-Type: application/json" \
-  -d '{"markdown":"# Test\n\nThis is **markdown**"}'
-
 # Test authentication (after implementing)
 curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \

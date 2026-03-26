@@ -89,6 +89,8 @@ POST /api/documents
 - `file` (MultipartFile): PDF/DOCX file for storage and text extraction (max 5MB, optional)
 - `title` (string): Document title
 
+**Note:** Text content is extracted server-side from the uploaded file. For text-only documents without file upload, use the JSON endpoint below.
+
 **Security Note (SEC-001):**
 Text extraction is performed **server-side** to prevent trust boundary inversion. The client does NOT provide content - the backend extracts it from the uploaded file, ensuring the text matches the file and preventing XSS/prompt injection attacks.
 

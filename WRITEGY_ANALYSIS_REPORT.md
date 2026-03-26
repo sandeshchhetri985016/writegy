@@ -490,7 +490,7 @@ erDiagram
 
 | Method | Endpoint | Auth | Description | Status |
 |--------|----------|------|-------------|--------|
-| POST | `/api/grammar/check` | Optional | AI grammar analysis | ✅ Implemented |
+| POST | `/api/grammar/check` | Required | AI grammar analysis | ✅ Implemented |
 
 ### Editor Endpoints (Documented but NOT Implemented)
 

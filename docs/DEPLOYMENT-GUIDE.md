@@ -18,7 +18,7 @@ This guide explains how to deploy Writegy using **Render + Supabase** - our unif
 1. GitHub account with your Writegy repository
 2. Supabase account (free)
 3. Render account (free)
-4. Java 25 JDK (for local development)
+4. Java 21 JDK (for local development)
 5. Maven 3.9+ (for building)
 6. Node.js 18+ (for frontend development)
 

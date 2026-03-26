@@ -30,7 +30,7 @@
 | Component | Status | Technology | Free Tier Limit | Usage |
 |-----------|--------|------------|----------------|-------|
 | **Frontend** | ✅ Production | React 18 | Unlimited | File processing + UI |
-| **Backend** | ✅ Production | Spring Boot 3.5.5 (Java 21) | 512MB RAM | 20MB optimized |
+| **Backend** | ✅ Production | Spring Boot 3.4.4 (Java 21) | 512MB RAM | 20MB optimized |
 | **Database** | ✅ Production | Supabase PostgreSQL 16 | 500MB forever | Auto migrations |
 | **Authentication** | ✅ Production | Supabase Auth + JWT | Unlimited users | Secure sessions |
 | **File Storage** | ✅ Production | Supabase Storage (S3) | 1GB | Hybrid processing |
