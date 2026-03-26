@@ -20,7 +20,7 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
   const [isAddingChild, setIsAddingChild] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
-  const indent = level * 24 // 24px per level for clear hierarchy
+  const indent = level * 20
 
   const handleAddChildSubmit = async (e) => {
     e.preventDefault()
@@ -41,7 +41,6 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
         setNewChildTitle('')
         setNewChildContent('')
         setShowAddChild(false)
-        // Trigger refresh
         window.location.reload()
       }
     } catch (error) {
@@ -53,11 +52,13 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       {/* Main Document Item */}
       <div
-        className={`flex items-center py-3 px-4 hover:bg-gray-50 rounded-md group transition-colors ${
-          isHovered ? 'bg-blue-50' : ''
+        className={`group flex items-center py-3 px-4 rounded-lg transition-all duration-200 cursor-pointer ${
+          isHovered 
+            ? 'bg-brand-50 dark:bg-brand-900/20 shadow-sm' 
+            : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
         }`}
         style={{ paddingLeft: `${16 + indent}px` }}
         onMouseEnter={() => setIsHovered(true)}
@@ -66,8 +67,11 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
         {/* Expand/Collapse Icon */}
         {hasChildren && (
           <button
-            onClick={() => onToggle(document.id)}
-            className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 mr-2 flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggle(document.id)
+            }}
+            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 mr-2 flex-shrink-0 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
             {expandedItems.has(document.id) ? (
               <ChevronDown className="w-4 h-4" />
@@ -76,32 +80,35 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
             )}
           </button>
         )}
-        {!hasChildren && <div className="w-5 mr-2 flex-shrink-0" />}
+        {!hasChildren && <div className="w-6 mr-2 flex-shrink-0" />}
 
         {/* Document Icon */}
         <div className="mr-3 flex-shrink-0">
           {hasChildren ? (
             expandedItems.has(document.id) ? (
-              <FolderOpen className="w-4 h-4 text-blue-500" />
+              <FolderOpen className="w-5 h-5 text-brand-500" />
             ) : (
-              <Folder className="w-4 h-4 text-blue-500" />
+              <Folder className="w-5 h-5 text-brand-500" />
             )
           ) : (
-            <FileText className="w-4 h-4 text-gray-400" />
+            <FileText className="w-5 h-5 text-slate-400 dark:text-slate-500" />
           )}
         </div>
 
         {/* Document Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center">
-            <span className="text-sm font-medium text-gray-900 truncate">
+            <Link
+              to={`/editor/${document.id}`}
+              className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+            >
               {document.title}
-            </span>
-            <span className="ml-2 text-xs text-gray-500">
+            </Link>
+            <span className="ml-3 text-xs text-slate-400 dark:text-slate-500">
               {document.wordCount || 0} words
             </span>
             {level > 0 && (
-              <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+              <span className="ml-2 badge-brand text-xs">
                 Child
               </span>
             )}
@@ -109,29 +116,35 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
         </div>
 
         {/* Action Buttons */}
-        <div className={`flex items-center space-x-1 transition-opacity ${
+        <div className={`flex items-center space-x-1 transition-all duration-200 ${
           isHovered ? 'opacity-100' : 'opacity-0'
         }`}>
           <button
-            onClick={() => setShowAddChild(!showAddChild)}
-            className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowAddChild(!showAddChild)
+            }}
+            className="p-2 text-success-600 dark:text-success-400 hover:bg-success-50 dark:hover:bg-success-900/30 rounded-lg transition-colors"
             title="Add child document"
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="w-4 h-4" />
           </button>
           <Link
             to={`/editor/${document.id}`}
-            className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+            className="p-2 text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/30 rounded-lg transition-colors"
             title="Edit document"
           >
-            <Edit className="w-3 h-3" />
+            <Edit className="w-4 h-4" />
           </Link>
           <button
-            onClick={() => onDelete(document.id, document.title)}
-            className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(document.id, document.title)
+            }}
+            className="p-2 text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/30 rounded-lg transition-colors"
             title="Delete document"
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -139,8 +152,8 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
       {/* Add Child Form */}
       {showAddChild && (
         <div
-          className="ml-8 mr-4 mb-3 p-3 bg-gray-50 rounded-md border border-gray-200"
-          style={{ marginLeft: `${16 + indent + 32}px` }}
+          className="mx-4 mb-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 animate-fade-in"
+          style={{ marginLeft: `${32 + indent}px` }}
         >
           <form onSubmit={handleAddChildSubmit} className="space-y-3">
             <div>
@@ -149,7 +162,7 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
                 value={newChildTitle}
                 onChange={(e) => setNewChildTitle(e.target.value)}
                 placeholder="Child document title..."
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input text-sm"
                 required
               />
             </div>
@@ -159,7 +172,7 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
                 onChange={(e) => setNewChildContent(e.target.value)}
                 placeholder="Child document content (optional)..."
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="input text-sm resize-none"
               />
             </div>
             <div className="flex justify-end space-x-2">
@@ -170,14 +183,14 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
                   setNewChildTitle('')
                   setNewChildContent('')
                 }}
-                className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                className="btn-secondary text-sm"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isAddingChild}
-                className="px-3 py-1 text-xs font-medium text-white bg-blue-600 border border-transparent rounded hover:bg-blue-700 disabled:opacity-50"
+                className="btn-primary text-sm"
               >
                 {isAddingChild ? 'Creating...' : 'Create Child'}
               </button>
@@ -192,25 +205,22 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
 const DocumentListView = ({ documents, onDelete, onRefresh }) => {
   const [expandedItems, setExpandedItems] = useState(new Set())
 
-  // Build hierarchical structure
   const buildHierarchy = (docs) => {
     const docMap = new Map()
     const roots = []
 
-    // Create document map
     docs.forEach(doc => {
       doc.children = []
       docMap.set(doc.id, doc)
     })
 
-    // Build tree
     docs.forEach(doc => {
       if (doc.parentId) {
         const parent = docMap.get(doc.parentId)
         if (parent) {
           parent.children.push(doc)
         } else {
-          roots.push(doc) // Orphaned document, treat as root
+          roots.push(doc)
         }
       } else {
         roots.push(doc)
@@ -220,7 +230,6 @@ const DocumentListView = ({ documents, onDelete, onRefresh }) => {
     return roots
   }
 
-  // Flatten tree for rendering with levels
   const flattenTree = (nodes, level = 0) => {
     const result = []
     nodes.forEach(node => {
@@ -249,10 +258,12 @@ const DocumentListView = ({ documents, onDelete, onRefresh }) => {
 
   if (!documents || documents.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FileText className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No documents yet</h3>
-        <p className="mt-1 text-sm text-gray-500">
+      <div className="text-center py-16">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+          <FileText className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+        </div>
+        <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">No documents yet</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Get started by creating your first document.
         </p>
       </div>

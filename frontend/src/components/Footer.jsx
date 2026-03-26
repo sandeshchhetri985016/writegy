@@ -1,110 +1,49 @@
-import { FileText, Github, Mail } from 'lucide-react'
+import { FileText, Heart } from 'lucide-react'
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear()
+
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand Section */}
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <FileText className="h-8 w-8 text-blue-400" />
-              <span className="text-xl font-bold">Writegy</span>
+    <footer className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+      <div className="max-w-screen-2xl mx-auto px-6 py-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Brand */}
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
+              <FileText className="h-4 w-4 text-white" />
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
-              AI-powered writing assistant that helps you create, edit, and improve your documents.
-              Professional writing tools with grammar checking and document management.
-            </p>
-            <div className="flex space-x-4">
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <Github className="h-5 w-5" />
-              </a>
-              <a
-                href="mailto:support@writegy.com"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <Mail className="h-5 w-5" />
-              </a>
-            </div>
+            <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">Writegy</span>
           </div>
 
-          {/* Product Links */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Product</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Features
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Grammar Check
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Document Management
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  File Upload
-                </a>
-              </li>
-            </ul>
+          {/* Copyright */}
+          <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
+            <span>&copy; {currentYear} Writegy. Made with</span>
+            <Heart className="w-4 h-4 mx-1.5 text-error-500 fill-current" />
+            <span>for better writing.</span>
           </div>
 
-          {/* Support Links */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Support</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  API Reference
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Contact Us
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Bottom Section */}
-        <div className="border-t border-gray-800 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
-              © 2025 Writegy. All rights reserved.
-            </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                Terms of Service
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                Cookie Policy
-              </a>
-            </div>
+          {/* Links */}
+          <div className="flex items-center space-x-6 text-sm">
+            <a
+              href="/privacy"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+            >
+              Privacy
+            </a>
+            <a
+              href="/terms"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+            >
+              Terms
+            </a>
+            <a
+              href="https://github.com/sandeshchhetri985016/writegy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+            >
+              GitHub
+            </a>
           </div>
         </div>
       </div>

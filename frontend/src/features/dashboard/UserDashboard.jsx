@@ -6,18 +6,11 @@ import {
   FileText,
   Plus,
   Search,
-  MoreVertical,
-  Calendar,
-  Clock,
-  FileType,
-  Trash2,
   Edit,
-  ChevronRight,
-  ChevronDown,
-  Folder,
-  FolderOpen,
+  Clock,
   TreePine,
-  List
+  List,
+  Sparkles
 } from 'lucide-react'
 import DocumentTreeView from './DocumentTreeView'
 import DocumentListView from './DocumentListView'
@@ -29,14 +22,12 @@ const UserDashboard = () => {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [viewMode, setViewMode] = useState('list') // 'list' or 'tree'
+  const [viewMode, setViewMode] = useState('list')
 
   useEffect(() => {
-    // Only load documents when user is authenticated and auth is not loading
     if (user && !authLoading) {
       loadDocuments()
     } else if (!authLoading) {
-      // If auth is done but no user, stop loading
       setLoading(false)
     }
   }, [user, authLoading])
@@ -63,14 +54,13 @@ const UserDashboard = () => {
     try {
       await documentApi.deleteDocument(documentId)
       toast.success('Document deleted successfully')
-      loadDocuments() // Refresh the list
+      loadDocuments()
     } catch (error) {
       console.error('Failed to delete document:', error)
       toast.error('Failed to delete document')
     }
   }
 
-  // Check if user has a saved draft
   const hasDraft = () => {
     const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
     return localStorage.getItem(draftKey) !== null
@@ -91,34 +81,25 @@ const UserDashboard = () => {
     })
   }
 
-  const getDocumentStatusColor = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'bg-gray-100 text-gray-800'
-      case 'PUBLISHED': return 'bg-green-100 text-green-800'
-      case 'ARCHIVED': return 'bg-yellow-100 text-yellow-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-96">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
       {/* Left Sidebar - Documents */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0">
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Your Documents</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Documents</h2>
             <Link
               to="/editor"
-              className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              className="btn-primary text-sm"
             >
               <Plus className="w-4 h-4 mr-1" />
               New
@@ -127,24 +108,24 @@ const UserDashboard = () => {
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search documents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input pl-10 text-sm"
             />
           </div>
 
           {/* View Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1 mt-3">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1 mt-4">
             <button
               onClick={() => setViewMode('list')}
-              className={`flex items-center px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
                 viewMode === 'list'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
               <List className="w-4 h-4 mr-2" />
@@ -152,10 +133,10 @@ const UserDashboard = () => {
             </button>
             <button
               onClick={() => setViewMode('tree')}
-              className={`flex items-center px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
                 viewMode === 'tree'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
               <TreePine className="w-4 h-4 mr-2" />
@@ -164,15 +145,17 @@ const UserDashboard = () => {
           </div>
         </div>
 
-        {/* Documents Content - Only show list view in sidebar */}
+        {/* Documents List */}
         <div className="flex-1 overflow-y-auto p-4">
           {filteredDocuments.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <div className="text-center py-12">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                <FileText className="w-6 h-6 text-slate-400 dark:text-slate-500" />
+              </div>
+              <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">
                 {searchTerm ? 'No documents found' : 'No documents yet'}
               </h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {searchTerm
                   ? 'Try adjusting your search terms'
                   : 'Get started by creating your first document.'
@@ -190,25 +173,22 @@ const UserDashboard = () => {
       </div>
 
       {/* Right Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-8 py-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Welcome back, {user?.email?.split('@')[0]}! 👋
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Continue your writing journey or start something new
-              </p>
-            </div>
+        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              Welcome back, {user?.email?.split('@')[0]}! 👋
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Continue your writing journey or start something new
+            </p>
           </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden">
           {viewMode === 'tree' ? (
-            /* Full-screen Tree View */
             <div className="h-full">
               <DocumentTreeView
                 documents={filteredDocuments}
@@ -217,27 +197,28 @@ const UserDashboard = () => {
               />
             </div>
           ) : (
-            /* Default Dashboard Content */
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="max-w-6xl mx-auto space-y-8">
+            <div className="h-full overflow-y-auto p-8">
+              <div className="max-w-4xl mx-auto space-y-8">
                 {/* Draft Banner */}
                 {hasDraft() && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="card p-4 border-l-4 border-l-brand-500 bg-brand-50/50 dark:bg-brand-950/20">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <FileText className="w-5 h-5 text-blue-600 mr-3" />
+                        <div className="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center mr-4">
+                          <FileText className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+                        </div>
                         <div>
-                          <h3 className="text-sm font-medium text-blue-800">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                             Continue writing?
                           </h3>
-                          <p className="text-sm text-blue-600">
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
                             You have unsaved changes from your last session.
                           </p>
                         </div>
                       </div>
                       <Link
                         to="/editor?draft=true"
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors"
+                        className="btn-primary text-sm"
                       >
                         Continue Draft
                       </Link>
@@ -247,34 +228,40 @@ const UserDashboard = () => {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <div className="card p-6">
                     <div className="flex items-center">
-                      <FileText className="w-8 h-8 text-blue-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Total Documents</p>
-                        <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
+                      <div className="w-12 h-12 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center mr-4">
+                        <FileText className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Documents</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{documents.length}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <div className="card p-6">
                     <div className="flex items-center">
-                      <Edit className="w-8 h-8 text-green-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Words Written</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                      <div className="w-12 h-12 rounded-xl bg-success-100 dark:bg-success-900/30 flex items-center justify-center mr-4">
+                        <Edit className="w-6 h-6 text-success-600 dark:text-success-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Words Written</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                           {documents.reduce((total, doc) => total + (doc.wordCount || 0), 0)}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <div className="card p-6">
                     <div className="flex items-center">
-                      <Clock className="w-8 h-8 text-purple-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Last Updated</p>
-                        <p className="text-sm font-bold text-gray-900">
+                      <div className="w-12 h-12 rounded-xl bg-warning-100 dark:bg-warning-900/30 flex items-center justify-center mr-4">
+                        <Clock className="w-6 h-6 text-warning-600 dark:text-warning-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Last Updated</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                           {documents.length > 0
                             ? formatDate(Math.max(...documents.map(doc => new Date(doc.updatedAt))))
                             : 'No documents yet'
@@ -285,13 +272,38 @@ const UserDashboard = () => {
                   </div>
                 </div>
 
-                {/* Empty State for Main Content */}
-                <div className="text-center py-16">
-                  <FileText className="mx-auto h-16 w-16 text-gray-300" />
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">Ready to write?</h3>
-                  <p className="mt-2 text-gray-500">
-                    Switch to Tree view to see your document hierarchy, or select a document from the sidebar to get started.
-                  </p>
+                {/* Quick Actions */}
+                <div className="card p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center">
+                    <Sparkles className="w-5 h-5 mr-2 text-brand-500" />
+                    Quick Actions
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Link
+                      to="/editor"
+                      className="group flex items-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/20 transition-all duration-200"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center mr-4 group-hover:bg-brand-200 dark:group-hover:bg-brand-800/30 transition-colors">
+                        <Plus className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">New Document</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Start writing something new</p>
+                      </div>
+                    </Link>
+                    <Link
+                      to="/editor?draft=true"
+                      className="group flex items-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-success-300 dark:hover:border-success-600 hover:bg-success-50 dark:hover:bg-success-950/20 transition-all duration-200"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-success-100 dark:bg-success-900/30 flex items-center justify-center mr-4 group-hover:bg-success-200 dark:group-hover:bg-success-800/30 transition-colors">
+                        <Edit className="w-5 h-5 text-success-600 dark:text-success-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">Continue Draft</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Pick up where you left off</p>
+                      </div>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

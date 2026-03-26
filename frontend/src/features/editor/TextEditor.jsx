@@ -32,16 +32,14 @@ import DocumentExport from './DocumentExport'
 const quillStyles = `
   .ql-editor {
     font-size: 16px;
-    line-height: 1.6;
-  }
+    line-height: 1.75;
+  } 
   .ql-toolbar {
     font-size: 14px;
   }
 `
 
 // Wrapper component for ReactQuill to avoid findDOMNode warning
-// Note: ReactQuill internally uses findDOMNode which is deprecated in React 18
-// This is a known limitation of react-quill with React 18
 const QuillWrapper = forwardRef((props, ref) => {
   const quillRef = useRef(null)
   
@@ -103,7 +101,6 @@ const TextEditor = () => {
 
   // Inject custom Quill styles
   useEffect(() => {
-    // Check if we're in a browser environment
     if (typeof document !== 'undefined' && document.head) {
       const style = document.createElement('style')
       style.textContent = quillStyles
@@ -116,7 +113,6 @@ const TextEditor = () => {
     }
   }, [])
 
-  // Check if draft should be restored (only when explicitly requested)
   const shouldRestoreDraft = searchParams.get('draft') === 'true'
 
   const [document, setDocument] = useState({
@@ -126,7 +122,7 @@ const TextEditor = () => {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
-  const [editorMode, setEditorMode] = useState('rich-text') // 'rich-text' or 'markdown'
+  const [editorMode, setEditorMode] = useState('rich-text')
   const [wordCount, setWordCount] = useState(0)
   const [charCount, setCharCount] = useState(0)
   const [autoSaveStatus, setAutoSaveStatus] = useState('')
@@ -147,20 +143,15 @@ const TextEditor = () => {
   }, [id])
 
   useEffect(() => {
-    // Calculate word and character count
-    // Strip HTML tags for accurate word count
     const text = document.content.replace(/<[^>]*>/g, ' ')
     const words = text.trim() ? text.trim().split(/\s+/).length : 0
     const chars = text.length
-
     setWordCount(words)
     setCharCount(chars)
   }, [document.content])
 
-  // Auto-save functionality and draft restoration
   useEffect(() => {
-    // Restore draft from localStorage when explicitly requested via URL parameter
-    if (!id && shouldRestoreDraft) { // Only restore when ?draft=true
+    if (!id && shouldRestoreDraft) {
       const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
       const savedDraft = localStorage.getItem(draftKey)
       if (savedDraft) {
@@ -171,10 +162,7 @@ const TextEditor = () => {
               title: draft.title || '',
               content: draft.content || ''
             })
-            
-            // ✅ FIX: Restore document ID if it exists to prevent duplicate creation
             if (draft.documentId) {
-              // Navigate to the correct document URL with draft=true parameter
               navigate(`/editor/${draft.documentId}?draft=true`, { replace: true })
             } else {
               toast.success('Draft restored from previous session')
@@ -187,20 +175,11 @@ const TextEditor = () => {
     }
   }, [user, id, shouldRestoreDraft, navigate])
 
-  // Debounced auto-save (saves 2 seconds after user stops typing)
   useEffect(() => {
-    if (!document.title.trim() && !document.content.trim()) {
-      return // Don't save empty drafts
-    }
+    if (!document.title.trim() && !document.content.trim()) return
+    if (document.content === lastSavedContent) return
 
-    if (document.content === lastSavedContent) {
-      return // Don't save if content hasn't changed
-    }
-
-    // Show "Saving..." status immediately
     setAutoSaveStatus('Saving...')
-
-    // Debounced save - wait 2 seconds after last change
     const saveTimeout = setTimeout(() => {
       autoSaveDraft()
     }, 2000)
@@ -208,20 +187,14 @@ const TextEditor = () => {
     return () => clearTimeout(saveTimeout)
   }, [document.content, document.title, lastSavedContent, user])
 
-  // Auto-save draft to localStorage
   const autoSaveDraft = () => {
-    if (!document.title.trim() && !document.content.trim()) {
-      return // Don't save empty drafts
-    }
-
-    if (document.content === lastSavedContent) {
-      return // Don't save if content hasn't changed
-    }
+    if (!document.title.trim() && !document.content.trim()) return
+    if (document.content === lastSavedContent) return
 
     try {
       const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
       const draft = {
-        documentId: id,  // ✅ FIX: Store the document ID to prevent duplicate creation
+        documentId: id,
         title: document.title,
         content: document.content,
         timestamp: new Date().toISOString()
@@ -230,15 +203,12 @@ const TextEditor = () => {
       localStorage.setItem(draftKey, JSON.stringify(draft))
       setLastSavedContent(document.content)
       setAutoSaveStatus('Draft saved')
-
-      // Clear status after 3 seconds
       setTimeout(() => setAutoSaveStatus(''), 3000)
     } catch (error) {
       console.warn('Failed to auto-save draft:', error)
     }
   }
 
-  // Clear draft when document is saved to server
   const clearDraft = () => {
     const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
     localStorage.removeItem(draftKey)
@@ -272,9 +242,7 @@ const TextEditor = () => {
 
     try {
       setSaving(true)
-
       if (id) {
-        // Update existing document
         await documentApi.updateDocument(id, {
           title: document.title,
           content: document.content
@@ -282,9 +250,8 @@ const TextEditor = () => {
         toast.success('Document saved successfully')
         clearDraft()
       } else {
-        // Create new document with file upload
         const response = await documentApi.uploadDocument(
-          null, // No file for now
+          null,
           document.title,
           document.content
         )
@@ -302,20 +269,16 @@ const TextEditor = () => {
 
   const extractTextFromFile = async (file) => {
     const fileType = file.type
-
     if (fileType === 'application/pdf') {
-      // Extract text from PDF
       const arrayBuffer = await file.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
       const data = await pdfParse(uint8Array)
       return data.text
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // Extract text from DOCX
       const arrayBuffer = await file.arrayBuffer()
       const result = await mammoth.extractRawText({ arrayBuffer })
       return result.value
     } else if (fileType === 'application/msword') {
-      // DOC files are harder to parse in browser, show message
       throw new Error('DOC files are not supported for text extraction. Please convert to DOCX or PDF.')
     } else {
       throw new Error('Unsupported file type')
@@ -326,14 +289,12 @@ const TextEditor = () => {
     const file = event.target.files[0]
     if (!file) return
 
-    // Validate file type
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
     if (!allowedTypes.includes(file.type)) {
       toast.error('Please select a PDF, DOC, or DOCX file')
       return
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File size must be less than 5MB')
       return
@@ -342,16 +303,11 @@ const TextEditor = () => {
     try {
       setLoading(true)
       toast('Extracting text from file...')
-
-      // Extract text from the file
       const extractedText = await extractTextFromFile(file)
-
-      // Set document with extracted text
       setDocument({
-        title: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+        title: file.name.replace(/\.[^/.]+$/, ''),
         content: extractedText || `Document uploaded: ${file.name}\n\nNo text could be extracted from this file.`
       })
-
       toast.success('File uploaded and text extracted successfully!')
     } catch (error) {
       console.error('Failed to upload file:', error)
@@ -362,7 +318,6 @@ const TextEditor = () => {
   }
 
   const handleGrammarCheck = async () => {
-    // Strip HTML tags before sending to grammar checker
     const plainText = document.content.replace(/<[^>]*>/g, ' ')
     if (!plainText.trim()) {
       toast.error('Please write some content first')
@@ -370,7 +325,6 @@ const TextEditor = () => {
     }
 
     try {
-      // Clear previous suggestions and show loading
       setGrammarSuggestions('Checking grammar...')
       setShowSuggestions(true)
       setFullCorrectionApplied(false)
@@ -378,13 +332,9 @@ const TextEditor = () => {
 
       const response = await grammarApi.checkGrammar(plainText)
 
-      // The backend returns a string response with AI analysis
       if (response.data) {
-        // Set the full AI analysis in the suggestions panel
         setGrammarSuggestions(response.data)
         toast.success('Grammar analysis complete!')
-
-        // Log full analysis to console for detailed review
         console.log('Full Grammar Analysis:', response.data)
       } else {
         setGrammarSuggestions('Grammar check complete! No issues found.')
@@ -408,13 +358,9 @@ const TextEditor = () => {
     }
 
     try {
-      // Use uploadDocument with null file for text-only documents
       await documentApi.uploadDocument(null, title, content)
-
-      // Set parent relationship
       const response = await documentApi.getAllDocuments()
       const newDoc = response.data.find(doc => doc.title === title)
-
       if (newDoc) {
         await documentApi.setDocumentParent(newDoc.id, id)
         toast.success('Child document created successfully!')
@@ -427,15 +373,9 @@ const TextEditor = () => {
   }
 
   const handleApplySuggestion = (original, replacement) => {
-    // Replace the specific text in the content
-    // Note: This is a simple string replacement. For more complex rich text,
-    // we would use Quill's selection API, but this works for the current state structure.
-    
-    // Unescape the original string to handle escaped quotes from JSON
     const unescapedOriginal = original.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
     const unescapedReplacement = replacement.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
     
-    // Try exact match first
     if (document.content.includes(unescapedOriginal)) {
       const newContent = document.content.replace(unescapedOriginal, unescapedReplacement)
       setDocument(prev => ({ ...prev, content: newContent }))
@@ -444,14 +384,9 @@ const TextEditor = () => {
       return
     }
     
-    // Fallback: Normalized matching - normalize whitespace for comparison
-    // This handles cases where LLM formats the original text differently (e.g., strips newlines)
-    // Decode HTML entities before normalization to handle <, >, etc.
     const normalizeForComparison = (text) => decodeHTML(text).replace(/\s+/g, ' ').trim()
     const normalizedContent = normalizeForComparison(document.content)
     const normalizedOriginal = normalizeForComparison(unescapedOriginal)
-    
-    // Find position in normalized text
     const normalizedIndex = normalizedContent.indexOf(normalizedOriginal)
     
     if (normalizedIndex === -1) {
@@ -459,13 +394,9 @@ const TextEditor = () => {
       return
     }
     
-    // Escape the raw text to match the editor's internal HTML entity storage
-    // This handles cases where user types literal HTML (e.g., <html> stored as <html>)
     const targetOriginal = escapeHTML(unescapedOriginal);
     const targetReplacement = escapeHTML(unescapedReplacement);
     
-    // Build a flexible regex pattern from the escaped original text
-    // Split by whitespace and allow any amount of whitespace between words
     const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const originalWords = targetOriginal.split(/\s+/).filter(word => word.length > 0)
     
@@ -474,17 +405,14 @@ const TextEditor = () => {
       return
     }
     
-    // Create pattern that allows flexible whitespace between words
     const pattern = originalWords.map(word => escapeRegex(word)).join('\\s+')
     const regex = new RegExp(pattern, 'g')
     
-    // Test if pattern matches
     if (!regex.test(document.content)) {
       toast.error('Could not find the original text to replace')
       return
     }
     
-    // Reset regex lastIndex and perform replacement using escaped versions
     regex.lastIndex = 0
     const newContent = document.content.replace(regex, targetReplacement)
     setDocument(prev => ({ ...prev, content: newContent }))
@@ -500,18 +428,12 @@ const TextEditor = () => {
 
   const highlightText = (originalText) => {
     if (!originalText || !quillRef.current) return
-
     try {
       const quill = quillRef.current.getEditor()
       const text = quill.getText()
-
-      // Find the position of the original text in the plain text
       const index = text.indexOf(originalText.trim())
       if (index === -1) return
-
-      // Apply highlighting format directly without setting selection
-      // This avoids the blue selection highlight
-      quill.formatText(index, originalText.trim().length, 'background', '#fef3c7') // Light yellow background
+      quill.formatText(index, originalText.trim().length, 'background', '#fef3c7')
     } catch (error) {
       console.warn('Failed to highlight text:', error)
     }
@@ -519,11 +441,8 @@ const TextEditor = () => {
 
   const unhighlightText = () => {
     if (!quillRef.current) return
-
     try {
       const quill = quillRef.current.getEditor()
-
-      // Remove all background highlighting from the entire document
       const length = quill.getLength()
       quill.formatText(0, length, 'background', false)
     } catch (error) {
@@ -531,53 +450,81 @@ const TextEditor = () => {
     }
   }
 
+  // Keyboard shortcuts (placed after all function definitions)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+      const modifier = isMac ? e.metaKey : e.ctrlKey
+
+      // Ctrl/Cmd + S - Save document
+      if (modifier && e.key === 's') {
+        e.preventDefault()
+        if (document.title.trim()) {
+          handleSave()
+        }
+        return
+      }
+
+      // Ctrl/Cmd + G - Grammar check
+      if (modifier && e.key === 'g') {
+        e.preventDefault()
+        if (document.content.replace(/<[^>]*>/g, '').trim()) {
+          handleGrammarCheck()
+        }
+        return
+      }
+
+      // Ctrl/Cmd + P - Toggle preview
+      if (modifier && e.key === 'p') {
+        e.preventDefault()
+        setPreviewMode(prev => !prev)
+        return
+      }
+
+      // Escape - Close panels
+      if (e.key === 'Escape') {
+        if (showSuggestions) {
+          setShowSuggestions(false)
+        } else if (showAddChildModal) {
+          setShowAddChildModal(false)
+        }
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [document.title, document.content, showSuggestions, showAddChildModal])
+
   const renderPreview = (text) => {
-    // If in markdown mode, render markdown as HTML, otherwise render HTML directly
     if (editorMode === 'markdown') {
       return (
-        <div className="prose prose-lg max-w-none">
+        <div className="prose prose-lg max-w-editor mx-auto">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              h1: ({ children }) => <h1 className="text-3xl font-bold mb-4 mt-6 text-gray-900">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-2xl font-bold mb-3 mt-5 text-gray-900">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-xl font-bold mb-2 mt-4 text-gray-900">{children}</h3>,
-              p: ({ children }) => <p className="mb-4 text-gray-700 leading-relaxed">{children}</p>,
-              ul: ({ children }) => <ul className="mb-4 ml-6 list-disc text-gray-700">{children}</ul>,
-              ol: ({ children }) => <ol className="mb-4 ml-6 list-decimal text-gray-700">{children}</ol>,
-              li: ({ children }) => <li className="mb-1">{children}</li>,
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-4">
-                  {children}
-                </blockquote>
-              ),
-              strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
-              em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
+              h1: ({ children }) => <h1>{children}</h1>,
+              h2: ({ children }) => <h2>{children}</h2>,
+              h3: ({ children }) => <h3>{children}</h3>,
+              p: ({ children }) => <p>{children}</p>,
+              ul: ({ children }) => <ul>{children}</ul>,
+              ol: ({ children }) => <ol>{children}</ol>,
+              li: ({ children }) => <li>{children}</li>,
+              blockquote: ({ children }) => <blockquote>{children}</blockquote>,
+              strong: ({ children }) => <strong>{children}</strong>,
+              em: ({ children }) => <em>{children}</em>,
               code: ({ inline, children }) => inline ? (
-                <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>
+                <code>{children}</code>
               ) : (
-                <code className="block bg-gray-100 p-4 rounded text-sm font-mono overflow-x-auto">{children}</code>
+                <code>{children}</code>
               ),
               table: ({ children }) => (
-                <div className="overflow-x-auto mb-4">
-                  <table className="min-w-full border-collapse border border-gray-300">
-                    {children}
-                  </table>
+                <div className="overflow-x-auto">
+                  <table>{children}</table>
                 </div>
               ),
-              thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
-              tbody: ({ children }) => <tbody>{children}</tbody>,
-              tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
-              th: ({ children }) => (
-                <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-900">
-                  {children}
-                </th>
-              ),
-              td: ({ children }) => (
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{children}</td>
-              ),
               a: ({ children, href }) => (
-                <a href={href} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">
+                <a href={href} target="_blank" rel="noopener noreferrer">
                   {children}
                 </a>
               )
@@ -588,8 +535,7 @@ const TextEditor = () => {
         </div>
       )
     } else {
-      // Rich text mode - render HTML directly
-      return <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: text }} />
+      return <div className="prose prose-lg max-w-editor mx-auto" dangerouslySetInnerHTML={{ __html: text }} />
     }
   }
 
@@ -602,75 +548,84 @@ const TextEditor = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0" role="banner">
-        <div className="flex items-center justify-between">
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md px-2 py-1"
+              className="flex items-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 rounded-md px-2 py-1 transition-colors"
               aria-label="Back to Dashboard"
             >
               <ArrowLeft className="w-5 h-5 mr-2" aria-hidden="true" />
-              Back to Dashboard
+              <span className="text-sm font-medium">Back to Dashboard</span>
             </button>
 
-            <div className="h-6 border-l border-gray-300" aria-hidden="true"></div>
+            <div className="h-6 border-l border-slate-300 dark:border-slate-600" aria-hidden="true"></div>
 
             <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-gray-400" aria-hidden="true" />
-              <span className="text-sm text-gray-600" aria-live="polite">
+              <FileText className="w-5 h-5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+              <span className="text-sm text-slate-600 dark:text-slate-400" aria-live="polite">
                 {id ? 'Editing Document' : 'New Document'}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             {/* Word/Character Count */}
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">
               {wordCount} words • {charCount} characters
             </div>
 
             {/* Auto-save Status */}
             {autoSaveStatus && (
-              <div className="flex items-center text-sm text-green-600">
+              <div className="flex items-center text-sm text-success-600 dark:text-success-400 animate-fade-in">
                 <CheckCircle className="w-4 h-4 mr-1" />
                 {autoSaveStatus}
               </div>
             )}
 
             {/* Editor Mode Toggle */}
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
               <button
-                onClick={() => setEditorMode(editorMode === 'rich-text' ? 'markdown' : 'rich-text')}
-                className={`px-2 py-1 text-sm font-medium rounded-md transition-colors ${
-                  editorMode === 'markdown'
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                onClick={() => setEditorMode('rich-text')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                  editorMode === 'rich-text'
+                    ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
-                title={`Switch to ${editorMode === 'rich-text' ? 'Markdown' : 'Rich Text'} editor`}
               >
-                {editorMode === 'markdown' ? '📝' : '✨'} {editorMode === 'markdown' ? 'MD' : 'RT'}
+                Rich Text
+              </button>
+              <button
+                onClick={() => setEditorMode('markdown')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                  editorMode === 'markdown'
+                    ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                Markdown
               </button>
             </div>
 
             {/* Preview Toggle */}
             <button
               onClick={() => setPreviewMode(!previewMode)}
-              className="flex items-center px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="btn-secondary"
             >
-              {previewMode ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+              {previewMode ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
               {previewMode ? 'Edit' : 'Preview'}
             </button>
 
             {/* File Upload */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="btn-secondary"
               disabled={loading}
             >
-              <Upload className="w-4 h-4 mr-1" />
+              <Upload className="w-4 h-4 mr-2" />
               Upload
             </button>
             <input
@@ -685,16 +640,17 @@ const TextEditor = () => {
             <button
               onClick={handleSave}
               disabled={saving || !document.title.trim()}
-              className="flex items-center px-3 py-1 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary h-10"
+              style={{ minWidth: '100px' }}
             >
               {saving ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span className="ml-1">Saving...</span>
+                  <span className="ml-2">Saving...</span>
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-1" />
+                  <Save className="w-4 h-4 mr-2" />
                   Save
                 </>
               )}
@@ -716,62 +672,61 @@ const TextEditor = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Formatting Toolbar */}
         {!previewMode && (
-          <div className="w-12 bg-white border-r border-gray-200 flex flex-col items-center py-3 space-y-2 flex-shrink-0">
+          <div className="w-14 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col items-center py-4 space-y-3 flex-shrink-0">
             <button
               onClick={handleGrammarCheck}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+              className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-all duration-200"
               title="Grammar Check"
               disabled={!document.content.replace(/<[^>]*>/g, '').trim()}
             >
-              <SpellCheck className="w-4 h-4" />
+              <SpellCheck className="w-5 h-5" />
             </button>
 
             {id && (
               <button
                 onClick={handleAddChild}
-                className="p-2 text-green-600 hover:text-green-900 hover:bg-green-100 rounded"
+                className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-success-600 dark:hover:text-success-400 hover:bg-success-50 dark:hover:bg-success-900/20 rounded-lg transition-all duration-200"
                 title="Add Child Document"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
               </button>
             )}
           </div>
         )}
 
         {/* Editor Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Title Input */}
-          <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
-            <input
-              type="text"
-              placeholder="Document Title..."
-              value={document.title}
-              onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full text-xl font-bold text-gray-900 border-none outline-none placeholder-gray-400"
-            />
-          </div>
-
-          {/* Content Area */}
-          <div className="flex-1 p-4 overflow-hidden">
-            {previewMode ? (
-              renderPreview(document.content)
-            ) : editorMode === 'markdown' ? (
-              <MarkdownEditor
-                value={document.content}
-                onChange={(content) => setDocument(prev => ({ ...prev, content }))}
-                placeholder="Start writing in Markdown..."
-                className="h-full"
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800">
+          {/* Content Area - Constrained Width */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-editor mx-auto px-8 py-6">
+              {/* Title Input - Seamless H1 Style */}
+              <input
+                type="text"
+                placeholder="Document Title..."
+                value={document.title}
+                onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 font-sans mb-6 pb-4 border-b border-slate-200 dark:border-slate-700"
               />
-            ) : (
-              <QuillWrapper
-                ref={quillRef}
-                theme="snow"
-                value={document.content}
-                onChange={(content) => setDocument(prev => ({ ...prev, content }))}
-                className="h-full"
-                placeholder="Start writing your document..."
-              />
-            )}
+              {previewMode ? (
+                renderPreview(document.content)
+              ) : editorMode === 'markdown' ? (
+                <MarkdownEditor
+                  value={document.content}
+                  onChange={(content) => setDocument(prev => ({ ...prev, content }))}
+                  placeholder="Start writing in Markdown..."
+                  className="min-h-[400px]"
+                />
+              ) : (
+                <QuillWrapper
+                  ref={quillRef}
+                  theme="snow"
+                  value={document.content}
+                  onChange={(content) => setDocument(prev => ({ ...prev, content }))}
+                  className="min-h-[400px]"
+                  placeholder="Start writing your document..."
+                />
+              )}
+            </div>
           </div>
         </div>
 
@@ -793,22 +748,22 @@ const TextEditor = () => {
         {!showSuggestions && grammarSuggestions && (
           <button
             onClick={() => setShowSuggestions(true)}
-            className="fixed right-4 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-l-md shadow-lg hover:bg-blue-700 transition-colors"
+            className="fixed right-0 top-1/2 transform -translate-y-1/2 bg-brand-600 text-white p-3 rounded-l-lg shadow-lg hover:bg-brand-700 transition-colors z-10"
             title="Show grammar suggestions"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
         )}
 
         {/* Add Child Modal */}
         {showAddChildModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Add Child Document</h3>
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 animate-fade-in">
+            <div className="card p-6 w-full max-w-md mx-4">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Add Child Document</h3>
                 <button
                   onClick={() => setShowAddChildModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -845,7 +800,7 @@ const AddChildForm = ({ onSubmit, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="child-title" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="child-title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           Title *
         </label>
         <input
@@ -853,14 +808,14 @@ const AddChildForm = ({ onSubmit, onCancel }) => {
           id="child-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="input"
           placeholder="Enter child document title"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="child-content" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="child-content" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           Content
         </label>
         <textarea
@@ -868,23 +823,16 @@ const AddChildForm = ({ onSubmit, onCancel }) => {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="input resize-none"
           placeholder="Enter child document content (optional)"
         />
       </div>
 
       <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-        >
+        <button type="button" onClick={onCancel} className="btn-secondary">
           Cancel
         </button>
-        <button
-          type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-        >
+        <button type="submit" className="btn-primary">
           Create Child
         </button>
       </div>

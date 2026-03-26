@@ -30,14 +30,14 @@ const AppRoutes = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Skip to main content link for keyboard users */}
       <a
         href="#main-content"
@@ -52,7 +52,7 @@ const AppRoutes = () => {
 
       <main
         id="main-content"
-        className="container mx-auto px-4 py-8"
+        className="flex-1"
         role="main"
       >
         <Routes>
