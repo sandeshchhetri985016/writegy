@@ -112,6 +112,9 @@ JsonNode parsed = objectMapper.readTree(cleanedResponse);
     }
 
     private String createGrammarPrompt(String text) {
+        // Unescape HTML entities so the LLM sees normal characters
+        String unescapedText = org.springframework.web.util.HtmlUtils.htmlUnescape(text);
+        
         return """
             You are a JSON API that provides writing improvement suggestions.
             
@@ -126,6 +129,12 @@ JsonNode parsed = objectMapper.readTree(cleanedResponse);
             - If the original or replacement text contains quotes (like code or JSON), escape them: \"name\" not "name"
             - Do NOT include nested JSON (do NOT put JSON inside string fields)
             - If unable to provide suggestions, return: {"suggestions":[]}
+            
+            CRITICAL RULES FOR 'original' FIELD:
+            1. Keep the 'original' string AS SHORT AS POSSIBLE. Target specific phrases, single sentences, or single lines. NEVER target massive paragraphs at once.
+            2. NEVER combine text from multiple lines into a single 'original' string using spaces. If fixing multi-line text, create separate suggestion objects for each line.
+            3. The 'original' string MUST be a perfect, raw substring copied directly from the text. Do not fix typos or HTML tags inside the 'original' field.
+            4. ESCAPE ALL QUOTES: You must return strictly valid JSON. If your 'original' or 'replacement' strings contain quotation marks, you MUST escape them using backslashes (e.g., \"original\": \"\\\"admin\\\" \\\"user\\\"\"). Never output raw, unescaped quotes inside JSON string values.
             
             Provide suggestions for ALL errors found in the text. Here is the EXACT format you must follow:
             
@@ -147,7 +156,7 @@ JsonNode parsed = objectMapper.readTree(cleanedResponse);
             Notice: Each suggestion is an OBJECT inside the array, not a string.
 
             Text to analyze:
-            """ + text;
+            """ + unescapedText;
     }
 
     private String callOpenRouterAPI(String prompt) throws Exception {
@@ -165,10 +174,13 @@ JsonNode parsed = objectMapper.readTree(cleanedResponse);
                         "content": "%s"
                     }
                 ],
+                "response_format": {
+                    "type": "json_object"
+                },
                 "temperature": 0.3,
                 "max_tokens": 8000
             }
-            """, model, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
+            """, model, prompt.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", ""));
 
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
