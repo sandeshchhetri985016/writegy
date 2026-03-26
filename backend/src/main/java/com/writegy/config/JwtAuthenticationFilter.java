@@ -37,12 +37,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Skip JWT processing for grammar check endpoint (temporarily for testing)
-        if (request.getRequestURI().startsWith("/api/grammar/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         final String authorizationHeader = request.getHeader("Authorization");
 
         String username = null;
