@@ -3,7 +3,7 @@
 **Full-featured SaaS writing platform with React 18 + Spring Boot 3.5, deployed on Render + Supabase (100% free tier). Features AI grammar checking, rich text editing, document management, and seamless file uploads.**
 
 [![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
-[![Spring Boot 3.5.5](https://img.shields.io/badge/Spring_Boot-3.5.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot 3.4.4](https://img.shields.io/badge/Spring_Boot-3.4.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![React 18](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Storage-green.svg)](https://supabase.com)
 [![Render](https://img.shields.io/badge/Hosted_on-Render-blue.svg)](https://render.com)

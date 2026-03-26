@@ -8,8 +8,8 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <!-- UPDATED: Correct version for Java 25 support -->
-        <version>3.5.5</version>
+        <!-- UPDATED: Stable GA release for production use -->
+        <version>3.4.4</version>
         <relativePath/>
     </parent>
 
@@ -97,6 +97,13 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
             <version>2.29.0</version>
+        </dependency>
+
+        <!-- Apache PDFBox for lightweight PDF text extraction (SEC-001 fix) -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
         </dependency>
 
 

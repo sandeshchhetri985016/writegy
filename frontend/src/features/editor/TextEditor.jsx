@@ -80,6 +80,20 @@ const quillModules = {
   ]
 }
 
+// Helper function to decode HTML entities
+const decodeHTML = (html) => {
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+};
+
+// Helper function to escape text to HTML entities
+const escapeHTML = (text) => {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+};
+
 const TextEditor = () => {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
@@ -421,16 +435,60 @@ const TextEditor = () => {
     const unescapedOriginal = original.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
     const unescapedReplacement = replacement.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
     
-    if (!document.content.includes(unescapedOriginal)) {
+    // Try exact match first
+    if (document.content.includes(unescapedOriginal)) {
+      const newContent = document.content.replace(unescapedOriginal, unescapedReplacement)
+      setDocument(prev => ({ ...prev, content: newContent }))
+      setAppliedSuggestions(prev => new Set([...prev, original]))
+      toast.success('Applied suggestion')
+      return
+    }
+    
+    // Fallback: Normalized matching - normalize whitespace for comparison
+    // This handles cases where LLM formats the original text differently (e.g., strips newlines)
+    // Decode HTML entities before normalization to handle <, >, etc.
+    const normalizeForComparison = (text) => decodeHTML(text).replace(/\s+/g, ' ').trim()
+    const normalizedContent = normalizeForComparison(document.content)
+    const normalizedOriginal = normalizeForComparison(unescapedOriginal)
+    
+    // Find position in normalized text
+    const normalizedIndex = normalizedContent.indexOf(normalizedOriginal)
+    
+    if (normalizedIndex === -1) {
       toast.error('Could not find the original text to replace')
       return
     }
-    const newContent = document.content.replace(unescapedOriginal, unescapedReplacement)
+    
+    // Escape the raw text to match the editor's internal HTML entity storage
+    // This handles cases where user types literal HTML (e.g., <html> stored as <html>)
+    const targetOriginal = escapeHTML(unescapedOriginal);
+    const targetReplacement = escapeHTML(unescapedReplacement);
+    
+    // Build a flexible regex pattern from the escaped original text
+    // Split by whitespace and allow any amount of whitespace between words
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const originalWords = targetOriginal.split(/\s+/).filter(word => word.length > 0)
+    
+    if (originalWords.length === 0) {
+      toast.error('Could not find the original text to replace')
+      return
+    }
+    
+    // Create pattern that allows flexible whitespace between words
+    const pattern = originalWords.map(word => escapeRegex(word)).join('\\s+')
+    const regex = new RegExp(pattern, 'g')
+    
+    // Test if pattern matches
+    if (!regex.test(document.content)) {
+      toast.error('Could not find the original text to replace')
+      return
+    }
+    
+    // Reset regex lastIndex and perform replacement using escaped versions
+    regex.lastIndex = 0
+    const newContent = document.content.replace(regex, targetReplacement)
     setDocument(prev => ({ ...prev, content: newContent }))
-
-    // Track that this specific suggestion has been applied
     setAppliedSuggestions(prev => new Set([...prev, original]))
-
     toast.success('Applied suggestion')
   }
 

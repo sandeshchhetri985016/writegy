@@ -42,9 +42,9 @@
 
 ## 🎯 **Current MVP Architecture (What Works Now)**
 
-### **Backend (Java 21 + Spring Boot 3.5.5)**
+### **Backend (Java 21 + Spring Boot 3.4.4)**
 - **Language:** Java 21 (latest LTS with performance benefits)
-- **Framework:** Spring Boot 3.5.5 (optimized for Java 21)
+- **Framework:** Spring Boot 3.4.4 (stable GA release)
 - **Architecture:** Monolithic for MVP simplicity
 - **Deployment:** Docker + Render (free tier)
 

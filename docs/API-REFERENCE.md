@@ -76,27 +76,29 @@ curl http://localhost:8080/api/documents
 ]
 ```
 
-### **2. Create New Document (Hybrid Upload)**
+### **2. Create New Document (Server-Side Text Extraction)**
 ```http
 POST /api/documents
 ```
 
-**Description:** Upload document file to Supabase Storage and save pre-extracted text content to database with automatic word/character counting.
+**Description:** Upload document file to Supabase Storage with **server-side text extraction**. The backend extracts text from uploaded files using Apache PDFBox (PDF) and Apache POI (DOCX), ensuring content integrity and preventing trust boundary inversion.
 
 **Content-Type:** `multipart/form-data`
 
 **Request Parameters:**
-- `file` (MultipartFile): PDF/DOCX file for storage (max 5MB, optional)
+- `file` (MultipartFile): PDF/DOCX file for storage and text extraction (max 5MB, optional)
 - `title` (string): Document title
-- `content` (string): Pre-extracted text content from frontend
+
+**Security Note (SEC-001):**
+Text extraction is performed **server-side** to prevent trust boundary inversion. The client does NOT provide content - the backend extracts it from the uploaded file, ensuring the text matches the file and preventing XSS/prompt injection attacks.
 
 **Example Request:**
 ```bash
-# Upload PDF file + pre-extracted content (hybrid approach)
+# Upload PDF file - text extracted server-side
 curl -X POST http://localhost:8080/api/documents \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "file=@document.pdf" \
-  -F "title=My Research Paper" \
-  -F "content=This is the extracted text from the PDF..."
+  -F "title=My Research Paper"
 ```
 
 **Response (Success 200):**
@@ -104,9 +106,9 @@ curl -X POST http://localhost:8080/api/documents \
 {
   "id": 1,
   "title": "My Research Paper",
-  "content": "This is the extracted text from the PDF...",
-  "wordCount": 8,
-  "characterCount": 36,
+  "content": "This is the server-side extracted text from the PDF...",
+  "wordCount": 156,
+  "characterCount": 892,
   "status": "DRAFT",
   "createdAt": "2025-12-12T10:30:00Z",
   "updatedAt": "2025-12-12T10:30:00Z"
@@ -114,10 +116,14 @@ curl -X POST http://localhost:8080/api/documents \
 ```
 
 **Features:**
-- ✅ **Automatic Word Counting** - Calculated from content
+- ✅ **Server-Side Text Extraction** - Content extracted from uploaded file (SEC-001)
+- ✅ **Apache PDFBox** - Lightweight PDF text extraction
+- ✅ **Apache POI** - DOCX text extraction
+- ✅ **Automatic Word Counting** - Calculated from extracted content
 - ✅ **Character Counting** - Excludes whitespace
-- ✅ **File Storage** - Optional file upload to Supabase
-- ✅ **Legacy Support** - Auto-updates old documents without counts
+- ✅ **File Storage** - Upload to Supabase Storage
+- ✅ **S3 Compensating Transaction** - Auto-cleanup on DB failure (ARCH-006)
+- ✅ **Content Validation** - Sanity check against file size
 
 **Resource Benefits:**
 - ✅ ~20MB memory vs ~100MB (before Tika removal)
@@ -335,12 +341,12 @@ curl http://localhost:8080/api/documents/1/children
 ]
 ```
 
-### **7. Grammar Check (AI-Powered)**
+### **7. Grammar Check (AI-Powered - OpenRouter)**
 ```http
 POST /api/grammar/check
 ```
 
-**Description:** Analyze text for grammar errors, spelling mistakes, punctuation issues, and writing style suggestions using AI. Returns improvement suggestions with "Apply Fix" functionality.
+**Description:** Analyze text for grammar errors, spelling mistakes, punctuation issues, and writing style suggestions using **OpenRouter AI models**. Returns improvement suggestions with "Apply Fix" functionality. Features bulletproof text matching with HTML entity handling and resilient replacement logic.
 
 **Request Body:**
 ```json
@@ -376,19 +382,22 @@ curl -X POST http://localhost:8080/api/grammar/check \
 
 **Response Format:**
 - `suggestions` (array): List of improvement suggestions
-  - `original` (string): Original text to be replaced
-  - `replacement` (string): Improved version of the text
+  - `original` (string): Original text to be replaced (escaped for JSON validity)
+  - `replacement` (string): Improved version of the text (escaped for JSON validity)
   - `explanation` (string): Brief explanation of the improvement
 
 **Features:**
-- ✅ **AI-Powered Analysis** - Grammar, spelling, style suggestions
+- ✅ **OpenRouter AI Models** - Free AI models for grammar analysis
 - ✅ **Suggestions Only** - Returns improvement suggestions (not full corrected text)
 - ✅ **Apply Fix** - Each suggestion can be applied individually
 - ✅ **Caching Enabled** - Faster responses for repeated checks
 - ✅ **Rate Limited** - 20 checks per hour per user
 - ✅ **Fallback Support** - Basic checks when AI unavailable
-- ✅ **Code/JSON/HTML Support** - Handles escaped characters in suggestions
-- ✅ **JSON Mode Enforcement** - API-level JSON validation prevents invalid LLM responses
+- ✅ **HTML Entity Handling** - Backend unescapes HTML before LLM processing
+- ✅ **Quote Escaping** - Strict JSON escaping for literal quotes in text
+- ✅ **Resilient Replacement** - Frontend fuzzy matching handles whitespace variations
+- ✅ **JSON Validation** - API-level JSON parsing prevents invalid LLM responses
+- ✅ **Nested JSON Detection** - Automatic unwrapping of malformed AI responses
 
 ## 🔍 **Health & Monitoring Endpoints**
 

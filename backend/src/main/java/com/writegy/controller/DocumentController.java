@@ -26,19 +26,36 @@ public class DocumentController {
     @Autowired
     private DocumentService documentService;
 
+    /**
+     * SEC-001 FIX: Create document with file upload.
+     * Text is extracted server-side from the uploaded file.
+     * No client-provided content parameter - prevents trust boundary inversion.
+     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentDTO> createDocument(
             @RequestParam(value = "file", required = false) MultipartFile file,
-            @RequestParam("title") String title,
-            @RequestParam("content") String content) throws IOException, ExecutionException, InterruptedException {
+            @RequestParam("title") String title) throws IOException, ExecutionException, InterruptedException {
 
         // Validate file (keep security) - only if file is provided
         if (file != null) {
             validateFile(file);
         }
 
-        // Create document with pre-extracted content (hybrid approach)
-        Document document = documentService.createDocument(file, title, content);
+        // Create document with server-side extracted content
+        Document document = documentService.createDocument(file, title);
+        DocumentDTO dto = mapToDTO(document);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Create document with plain text content (no file upload).
+     * Used for direct text input without file attachment.
+     */
+    @PostMapping
+    public ResponseEntity<DocumentDTO> createDocumentWithText(
+            @Valid @RequestBody DocumentRequest request) throws IOException {
+        
+        Document document = documentService.createDocument(request.getTitle(), request.getContent());
         DocumentDTO dto = mapToDTO(document);
         return ResponseEntity.ok(dto);
     }

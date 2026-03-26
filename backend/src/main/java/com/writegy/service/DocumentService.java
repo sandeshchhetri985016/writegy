@@ -30,6 +30,9 @@ public class DocumentService {
     @Autowired
     private StorageService storageService; // Keep S3 upload learning
 
+    @Autowired
+    private TextExtractionService textExtractionService; // SEC-001: Server-side extraction
+
     // Helper method to calculate word and character counts
     private void calculateAndSetCounts(Document document) {
         String content = document.getContent();
@@ -49,23 +52,69 @@ public class DocumentService {
         }
     }
 
-    // HYBRID APPROACH: Upload file to S3 + save pre-extracted content to DB
-    public Document createDocument(MultipartFile file, String title, String content) throws IOException, ExecutionException, InterruptedException {
+    /**
+     * SEC-001 FIX: Server-side text extraction.
+     * Extracts text from uploaded file instead of trusting client-provided content.
+     * Supports PDF (via Apache PDFBox) and DOCX (via Apache POI).
+     */
+    public Document createDocument(MultipartFile file, String title) throws IOException, ExecutionException, InterruptedException {
         User user = getCurrentUser();
 
         // 1. Upload file to Supabase Storage (only if file is provided)
         String fileName = null;
-        if (file != null) {
+        if (file != null && !file.isEmpty()) {
             fileName = storageService.uploadFile(file);
         }
 
-        // 2. Create document with pre-extracted content (SKIP Tika to save memory!)
+        try {
+            // 2. SEC-001: Extract text server-side from uploaded file
+            String extractedContent = "";
+            if (file != null && !file.isEmpty()) {
+                extractedContent = textExtractionService.extractText(file);
+                
+                // Validate content length against file size for sanity check
+                if (!textExtractionService.validateContentLength(extractedContent, file.getSize())) {
+                    throw new IOException("Extracted content length exceeds expected bounds for file size");
+                }
+            }
+
+            // 3. Create document with server-side extracted content
+            Document document = new Document();
+            document.setTitle(title);
+            document.setContent(extractedContent);
+            document.setUser(user);
+
+            // 4. Calculate and set word/character counts
+            calculateAndSetCounts(document);
+
+            return documentRepository.save(document);
+        } catch (Exception e) {
+            // ARCH-006: Compensating transaction - clean up orphaned S3 file
+            if (fileName != null) {
+                try {
+                    storageService.deleteFile(fileName);
+                } catch (Exception deleteException) {
+                    // Log but don't fail - file will be cleaned up by lifecycle policy
+                    System.err.println("Failed to delete orphaned S3 file: " + fileName);
+                }
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Create document with plain text content (no file upload).
+     * Used for direct text input without file attachment.
+     */
+    public Document createDocument(String title, String content) throws IOException {
+        User user = getCurrentUser();
+
         Document document = new Document();
         document.setTitle(title);
-        document.setContent(content);  // Content pre-extracted by frontend
+        document.setContent(content);
         document.setUser(user);
 
-        // 3. Calculate and set word/character counts
+        // Calculate and set word/character counts
         calculateAndSetCounts(document);
 
         return documentRepository.save(document);
@@ -75,25 +124,9 @@ public class DocumentService {
         User user = getCurrentUser();
         List<Document> documents = documentRepository.findByUserId(user.getId());
 
-        System.out.println("DEBUG: Found " + documents.size() + " documents for user: " + user.getEmail());
-
-        // Recalculate word counts for legacy documents (created before word count calculation was added)
-        for (Document document : documents) {
-            System.out.println("DEBUG: Document '" + document.getTitle() + "' has wordCount: " + document.getWordCount());
-
-            if (document.getWordCount() == null || document.getWordCount() == 0) {
-                // Only recalculate if content exists and is not empty
-                if (document.getContent() != null && !document.getContent().trim().isEmpty()) {
-                    System.out.println("DEBUG: Recalculating word count for document: " + document.getTitle());
-                    calculateAndSetCounts(document);
-                    documentRepository.save(document);
-                    System.out.println("DEBUG: Updated word count to: " + document.getWordCount());
-                } else {
-                    System.out.println("DEBUG: Skipping document '" + document.getTitle() + "' - no content or empty content");
-                }
-            }
-        }
-
+        // PERF-001 FIX: Removed word count recalculation from GET request
+        // Word counts are now backfilled via V10 migration and calculated on create/update
+        
         return documents;
     }
 
@@ -256,20 +289,13 @@ public class DocumentService {
         return documentRepository.findByParentIdOrderByTreeOrderAsc(parentId);
     }
 
+    /**
+     * PERF-002 FIX: Use recursive CTE query for single database round-trip.
+     * Checks if documentId is an ancestor of parentId (would create circular reference).
+     */
     private boolean isCircularReference(Long documentId, Long parentId) {
-        // Check if the parent is a descendant of the document
-        Long currentId = parentId;
-        while (currentId != null) {
-            if (currentId.equals(documentId)) {
-                return true;
-            }
-            Document current = documentRepository.findById(currentId).orElse(null);
-            if (current != null && current.getParent() != null) {
-                currentId = current.getParent().getId();
-            } else {
-                currentId = null;
-            }
-        }
-        return false;
+        // Check if the document is an ancestor of the parent
+        // If true, setting parent would create a circular reference
+        return documentRepository.isAncestorOf(documentId, parentId);
     }
 }
