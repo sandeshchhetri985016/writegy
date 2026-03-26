@@ -388,6 +388,7 @@ curl -X POST http://localhost:8080/api/grammar/check \
 - ✅ **Rate Limited** - 20 checks per hour per user
 - ✅ **Fallback Support** - Basic checks when AI unavailable
 - ✅ **Code/JSON/HTML Support** - Handles escaped characters in suggestions
+- ✅ **JSON Mode Enforcement** - API-level JSON validation prevents invalid LLM responses
 
 ## 🔍 **Health & Monitoring Endpoints**
 
