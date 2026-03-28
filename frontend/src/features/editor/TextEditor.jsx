@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef } from 'react'
+import { useState, useEffect, useRef, forwardRef, Suspense } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { documentApi, grammarApi } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
@@ -14,8 +14,11 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
-  Plus
+  Plus,
+  PenTool,
+  Type
 } from 'lucide-react'
+import CanvasEditor from './CanvasEditor'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import mammoth from 'mammoth'
@@ -119,6 +122,8 @@ const TextEditor = () => {
     title: '',
     content: ''
   })
+  const [documentMode, setDocumentMode] = useState('text') // 'text', 'canvas', 'hybrid'
+  const [canvasData, setCanvasData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
@@ -586,29 +591,57 @@ const TextEditor = () => {
               </div>
             )}
 
-            {/* Editor Mode Toggle */}
+            {/* Document Mode Toggle (Text / Canvas) */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
               <button
-                onClick={() => setEditorMode('rich-text')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                  editorMode === 'rich-text'
+                onClick={() => setDocumentMode('text')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 ${
+                  documentMode === 'text'
                     ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
-                Rich Text
+                <Type className="w-4 h-4" />
+                Text
               </button>
               <button
-                onClick={() => setEditorMode('markdown')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                  editorMode === 'markdown'
+                onClick={() => setDocumentMode('canvas')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 ${
+                  documentMode === 'canvas'
                     ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
-                Markdown
+                <PenTool className="w-4 h-4" />
+                Canvas
               </button>
             </div>
+
+            {/* Text Editor Mode Toggle (only show when in text mode) */}
+            {documentMode === 'text' && (
+              <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+                <button
+                  onClick={() => setEditorMode('rich-text')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                    editorMode === 'rich-text'
+                      ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  Rich Text
+                </button>
+                <button
+                  onClick={() => setEditorMode('markdown')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                    editorMode === 'markdown'
+                      ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  Markdown
+                </button>
+              </div>
+            )}
 
             {/* Preview Toggle */}
             <button
@@ -707,7 +740,29 @@ const TextEditor = () => {
                 onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
                 className="w-full text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 font-sans mb-6 pb-4 border-b border-slate-200 dark:border-slate-700"
               />
-              {previewMode ? (
+
+              {/* Content Area - Conditionally render based on document mode */}
+              {documentMode === 'canvas' ? (
+                <div className="h-[600px] border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center h-full">
+                      <LoadingSpinner size="lg" />
+                    </div>
+                  }>
+                    <CanvasEditor
+                      initialData={canvasData}
+                      onSave={(data) => {
+                        setCanvasData(data)
+                        // Auto-save canvas data
+                        if (id) {
+                          documentApi.updateCanvasData(id, data).catch(console.error)
+                        }
+                      }}
+                      className="h-full"
+                    />
+                  </Suspense>
+                </div>
+              ) : previewMode ? (
                 renderPreview(document.content)
               ) : editorMode === 'markdown' ? (
                 <MarkdownEditor

@@ -120,6 +120,75 @@ public class DocumentService {
         return documentRepository.save(document);
     }
 
+    /**
+     * Create canvas document for tldraw integration.
+     * Used for handwriting/drawing documents.
+     */
+    public Document createCanvasDocument(String title, String canvasData) throws IOException {
+        User user = getCurrentUser();
+
+        Document document = new Document();
+        document.setTitle(title);
+        document.setContent(""); // Canvas documents may have empty text content
+        document.setCanvasData(canvasData);
+        document.setContentType("canvas");
+        document.setUser(user);
+
+        // Canvas documents don't have traditional word/character counts
+        document.setWordCount(0);
+        document.setCharacterCount(0);
+
+        return documentRepository.save(document);
+    }
+
+    /**
+     * Update canvas data for an existing document.
+     * Used when user draws on canvas and auto-saves.
+     */
+    public Document updateCanvasData(Long id, String canvasData) {
+        User currentUser = getCurrentUser();
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Document not found"));
+
+        // Verify ownership
+        if (!document.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Not authorized to update this document");
+        }
+
+        document.setCanvasData(canvasData);
+        // If updating canvas data, ensure content type is at least 'canvas'
+        if ("text".equals(document.getContentType())) {
+            document.setContentType("hybrid");
+        }
+
+        return documentRepository.save(document);
+    }
+
+    /**
+     * Update document with both text content and canvas data.
+     * Used for hybrid documents that have both text and canvas.
+     */
+    public Document updateDocument(Long id, String title, String content, String canvasData, String contentType) {
+        User currentUser = getCurrentUser();
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Document not found"));
+
+        // Verify ownership
+        if (!document.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Not authorized to update this document");
+        }
+
+        document.setTitle(title);
+        document.setContent(content);
+        document.setCanvasData(canvasData);
+        document.setContentType(contentType);
+
+        // Calculate and set word/character counts for text content
+        calculateAndSetCounts(document);
+
+        return documentRepository.save(document);
+    }
+
     public List<Document> getDocuments() {
         User user = getCurrentUser();
         List<Document> documents = documentRepository.findByUserId(user.getId());

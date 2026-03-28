@@ -101,6 +101,26 @@ export const documentApi = {
   // Set document parent (for tree hierarchy)
   setDocumentParent: (id, parentId) => api.post(`/api/documents/${id}/parent`, null, {
     params: { parentId }
+  }),
+
+  // Canvas API methods
+  // Create canvas document
+  createCanvasDocument: (title, canvasData) => api.post('/api/documents/canvas', {
+    title,
+    canvasData
+  }),
+
+  // Update canvas data for an existing document
+  updateCanvasData: (id, canvasData) => api.put(`/api/documents/${id}/canvas`, {
+    canvasData
+  }),
+
+  // Update document with both text content and canvas data (hybrid mode)
+  updateHybridDocument: (id, title, content, canvasData, contentType) => api.put(`/api/documents/${id}/hybrid`, {
+    title,
+    content,
+    canvasData,
+    contentType
   })
 }
 

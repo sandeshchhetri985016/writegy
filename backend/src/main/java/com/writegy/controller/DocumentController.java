@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -56,6 +57,56 @@ public class DocumentController {
             @Valid @RequestBody DocumentRequest request) throws IOException {
         
         Document document = documentService.createDocument(request.getTitle(), request.getContent());
+        DocumentDTO dto = mapToDTO(document);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Create canvas document for tldraw integration.
+     * Used for handwriting/drawing documents.
+     */
+    @PostMapping("/canvas")
+    public ResponseEntity<DocumentDTO> createCanvasDocument(
+            @RequestBody Map<String, String> request) throws IOException {
+        
+        String title = request.get("title");
+        String canvasData = request.get("canvasData");
+        
+        Document document = documentService.createCanvasDocument(title, canvasData);
+        DocumentDTO dto = mapToDTO(document);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Update canvas data for an existing document.
+     * Used when user draws on canvas and auto-saves.
+     */
+    @PutMapping("/{id}/canvas")
+    public ResponseEntity<DocumentDTO> updateCanvasData(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        
+        String canvasData = request.get("canvasData");
+        Document document = documentService.updateCanvasData(id, canvasData);
+        DocumentDTO dto = mapToDTO(document);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Update document with both text content and canvas data.
+     * Used for hybrid documents that have both text and canvas.
+     */
+    @PutMapping("/{id}/hybrid")
+    public ResponseEntity<DocumentDTO> updateHybridDocument(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        
+        String title = request.get("title");
+        String content = request.get("content");
+        String canvasData = request.get("canvasData");
+        String contentType = request.get("contentType");
+        
+        Document document = documentService.updateDocument(id, title, content, canvasData, contentType);
         DocumentDTO dto = mapToDTO(document);
         return ResponseEntity.ok(dto);
     }

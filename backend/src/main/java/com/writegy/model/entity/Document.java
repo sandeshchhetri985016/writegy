@@ -31,6 +31,13 @@ public class Document {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content = "";
 
+    // Canvas support for tldraw integration
+    @Column(columnDefinition = "JSONB")
+    private String canvasData;
+
+    @Column(length = 20)
+    private String contentType = "text";
+
     @Enumerated(EnumType.STRING)
     private DocumentStatus status = DocumentStatus.DRAFT;
 
@@ -122,4 +129,11 @@ public class Document {
 
     public Integer getDepth() { return depth; }
     public void setDepth(Integer depth) { this.depth = depth; }
+
+    // Canvas getters and setters
+    public String getCanvasData() { return canvasData; }
+    public void setCanvasData(String canvasData) { this.canvasData = canvasData; }
+
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
 }
