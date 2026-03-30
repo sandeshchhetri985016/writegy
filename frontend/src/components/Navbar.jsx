@@ -34,9 +34,9 @@ const Navbar = () => {
 
   if (!user) {
     return (
-      <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
-        <div className="max-w-screen-2xl mx-auto px-6">
-          <div className="flex justify-between items-center h-16">
+    <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6">
+        <div className="flex justify-between items-center h-14 sm:h-16">
             <Link to="/" className="flex items-center space-x-3 group">
               <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center group-hover:bg-brand-700 transition-colors">
                 <FileText className="h-5 w-5 text-white" />
@@ -75,8 +75,8 @@ const Navbar = () => {
 
   return (
     <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
-      <div className="max-w-screen-2xl mx-auto px-6">
-        <div className="flex justify-between items-center h-16">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6">
+        <div className="flex justify-between items-center h-14 sm:h-16">
           <Link to="/dashboard" className="flex items-center space-x-3 group">
             <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center group-hover:bg-brand-700 transition-colors">
               <FileText className="h-5 w-5 text-white" />
@@ -90,13 +90,6 @@ const Navbar = () => {
               className="btn-ghost text-sm"
             >
               Dashboard
-            </Link>
-
-            <Link
-              to="/editor"
-              className="btn-primary text-sm"
-            >
-              New Document
             </Link>
 
             {/* Dark Mode Toggle */}

@@ -164,7 +164,13 @@ public class DocumentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<DocumentDTO> updateDocument(@PathVariable Long id, @Valid @RequestBody DocumentRequest request) {
-        Document updatedDocument = documentService.updateDocument(id, request.getTitle(), request.getContent());
+        Document updatedDocument = documentService.updateDocument(
+            id, 
+            request.getTitle(), 
+            request.getContent(), 
+            request.getCanvasData(), 
+            request.getContentType()
+        );
         DocumentDTO dto = mapToDTO(updatedDocument);
         return ResponseEntity.ok(dto);
     }
@@ -208,6 +214,8 @@ public class DocumentController {
         dto.setId(document.getId());
         dto.setTitle(document.getTitle());
         dto.setContent(document.getContent());
+        dto.setCanvasData(document.getCanvasData());
+        dto.setContentType(document.getContentType());
         dto.setStatus(document.getStatus());
         dto.setWordCount(document.getWordCount());
         dto.setCharacterCount(document.getCharacterCount());

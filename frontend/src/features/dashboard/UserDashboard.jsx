@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { documentApi } from '../../lib/api'
@@ -10,7 +10,8 @@ import {
   Clock,
   TreePine,
   List,
-  Sparkles
+  PenTool,
+  ChevronDown
 } from 'lucide-react'
 import DocumentTreeView from './DocumentTreeView'
 import DocumentListView from './DocumentListView'
@@ -23,6 +24,18 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState('list')
+  const [showNewDocMenu, setShowNewDocMenu] = useState(false)
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 770)
+  const newDocMenuRef = useRef(null)
+
+  // Listen for window resize to detect screen size changes
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth < 770)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -61,15 +74,21 @@ const UserDashboard = () => {
     }
   }
 
-  const hasDraft = () => {
-    const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
-    return localStorage.getItem(draftKey) !== null
-  }
-
   const filteredDocuments = documents.filter(doc =>
     doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.content.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (newDocMenuRef.current && !newDocMenuRef.current.contains(event.target)) {
+        setShowNewDocMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -92,18 +111,66 @@ const UserDashboard = () => {
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
       {/* Left Sidebar - Documents */}
-      <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0">
+      <div className="w-full md:w-80 lg:w-96 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0">
         {/* Sidebar Header */}
         <div className="p-5 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Documents</h2>
-            <Link
-              to="/editor"
-              className="btn-primary text-sm"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              New
-            </Link>
+            
+            {/* Bear-style Add Note Button with Dropdown - All Screen Sizes */}
+            <div className="relative" ref={newDocMenuRef}>
+              <button
+                onClick={() => setShowNewDocMenu(!showNewDocMenu)}
+                className="flex items-center space-x-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                aria-label="Add new document"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">Add Note</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showNewDocMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showNewDocMenu && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowNewDocMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 card py-2 z-20 animate-fade-in shadow-lg">
+                    <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Create New</p>
+                    </div>
+                    <div className="py-1">
+                      <Link
+                        to="/editor?type=text"
+                        onClick={() => setShowNewDocMenu(false)}
+                        className="flex items-center px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center mr-3">
+                          <FileText className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Text Document</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Markdown writing</p>
+                        </div>
+                      </Link>
+                      <Link
+                        to="/editor?type=canvas"
+                        onClick={() => setShowNewDocMenu(false)}
+                        className="flex items-center px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-warning-100 dark:bg-warning-900/30 flex items-center justify-center mr-3">
+                          <PenTool className="w-4 h-4 text-warning-600 dark:text-warning-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Canvas Notebook</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Drawing & sketching</p>
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Search */}
@@ -145,7 +212,7 @@ const UserDashboard = () => {
           </div>
         </div>
 
-        {/* Documents List */}
+        {/* Documents List or Tree View (Tree only on small screens) */}
         <div className="flex-1 overflow-y-auto p-4">
           {filteredDocuments.length === 0 ? (
             <div className="text-center py-12">
@@ -162,6 +229,12 @@ const UserDashboard = () => {
                 }
               </p>
             </div>
+          ) : viewMode === 'tree' && isSmallScreen ? (
+            <DocumentTreeView
+              documents={filteredDocuments}
+              onDelete={handleDeleteDocument}
+              onRefresh={loadDocuments}
+            />
           ) : (
             <DocumentListView
               documents={filteredDocuments}
@@ -199,33 +272,6 @@ const UserDashboard = () => {
           ) : (
             <div className="h-full overflow-y-auto p-8">
               <div className="max-w-4xl mx-auto space-y-8">
-                {/* Draft Banner */}
-                {hasDraft() && (
-                  <div className="card p-4 border-l-4 border-l-brand-500 bg-brand-50/50 dark:bg-brand-950/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center mr-4">
-                          <FileText className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            Continue writing?
-                          </h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            You have unsaved changes from your last session.
-                          </p>
-                        </div>
-                      </div>
-                      <Link
-                        to="/editor?draft=true"
-                        className="btn-primary text-sm"
-                      >
-                        Continue Draft
-                      </Link>
-                    </div>
-                  </div>
-                )}
-
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="card p-6">
@@ -272,39 +318,6 @@ const UserDashboard = () => {
                   </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="card p-6">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center">
-                    <Sparkles className="w-5 h-5 mr-2 text-brand-500" />
-                    Quick Actions
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Link
-                      to="/editor"
-                      className="group flex items-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/20 transition-all duration-200"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center mr-4 group-hover:bg-brand-200 dark:group-hover:bg-brand-800/30 transition-colors">
-                        <Plus className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">New Document</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Start writing something new</p>
-                      </div>
-                    </Link>
-                    <Link
-                      to="/editor?draft=true"
-                      className="group flex items-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-success-300 dark:hover:border-success-600 hover:bg-success-50 dark:hover:bg-success-950/20 transition-all duration-200"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-success-100 dark:bg-success-900/30 flex items-center justify-center mr-4 group-hover:bg-success-200 dark:group-hover:bg-success-800/30 transition-colors">
-                        <Edit className="w-5 h-5 text-success-600 dark:text-success-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">Continue Draft</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Pick up where you left off</p>
-                      </div>
-                    </Link>
-                  </div>
-                </div>
               </div>
             </div>
           )}

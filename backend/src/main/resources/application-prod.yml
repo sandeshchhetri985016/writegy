@@ -4,8 +4,14 @@ server:
 spring:
   jpa:
     show-sql: false
+    hibernate:
+      ddl-auto: update
 
   datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/writegy}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 3          # Free tier friendly - prevent DB connection exhaustion
       minimum-idle: 1               # Minimum connections to maintain

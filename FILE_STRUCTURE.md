@@ -80,6 +80,7 @@ config/
 controller/
 ├── AuthController.java [REST controller for authentication endpoints: POST /auth/sync and GET /auth/me]
 ├── DocumentController.java [REST controller for document CRUD operations: GET/POST/PUT/DELETE /api/documents, hierarchy endpoints]
+├── ExportController.java [REST controller for document export: POST /api/documents/{id}/export]
 ├── GrammarController.java [REST controller for grammar checking: POST /api/grammar/check]
 ```
 
@@ -277,6 +278,8 @@ features/dashboard/
 
 ```
 features/editor/
+├── CanvasEditor.jsx ⭐ NEW - Canvas editor using tldraw with native UI and CSS theming
+├── canvas-theme.css ⭐ NEW - CSS variables for customizing tldraw UI to match Writegy design
 ├── DocumentStats.jsx [Component displaying document statistics: word count, character count, last updated]
 ├── FileUpload.jsx [File upload component supporting PDF/DOCX with drag-and-drop and progress indicator]
 ├── MarkdownEditor.jsx [Markdown editor with syntax highlighting, live preview, and keyboard shortcuts]
@@ -524,6 +527,8 @@ archive/infra-unused/
 | Document CRUD | `backend/src/main/java/com/writegy/controller/DocumentController.java` |
 | Grammar AI | `backend/src/main/java/com/writegy/service/GrammarService.java` |
 | Text Editor | `frontend/src/features/editor/TextEditor.jsx` |
+| Canvas Editor ⭐ | `frontend/src/features/editor/CanvasEditor.jsx` |
+| Supabase Storage ⭐ | `frontend/src/lib/storage.js` |
 | API Client | `frontend/src/lib/api.js` |
 | Auth Context | `frontend/src/contexts/AuthContext.jsx` |
 | Database Schema | `backend/src/main/resources/db/migration/V1-V9 SQL files` |

@@ -34,7 +34,7 @@ npm --version
 ```
 
 **Expected Results:**
-- Java: Shows version (should be 21 or higher)
+- Java: Shows version 21 or higher (Temurin distribution recommended)
 - Maven: Shows version 3.9+
 - Git: Shows version info
 - Node.js: Shows version (should be 18+ for frontend)

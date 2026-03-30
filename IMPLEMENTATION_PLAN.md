@@ -92,6 +92,117 @@ frontend/src/
 
 ## 📝 Changelog
 
+### v1.2.0 - PostgreSQL Migration & Bug Fixes (2026-03-31)
+
+#### 🗄️ Database Migration
+
+**PostgreSQL Migration:**
+- ✅ Migrated from H2 in-memory to Supabase PostgreSQL
+- ✅ Data now persists across server restarts
+- ✅ Flyway migrations enabled for schema management
+- ✅ Hibernate ddl-auto set to `update` for automatic table creation
+- ✅ PostgreSQL dialect configured for optimal performance
+
+#### 🐛 Bug Fixes
+
+**Canvas JSONB Mapping:**
+- ✅ Fixed `canvas_data` column type mismatch (TEXT vs JSONB)
+- ✅ Added `@JdbcTypeCode(SqlTypes.JSON)` annotation to `Document.canvasData`
+- ✅ Canvas documents now save and load correctly
+
+**Authentication Duplicate User Fix:**
+- ✅ Added `findBySupabaseId()` method to `UserRepository`
+- ✅ Updated `AuthService.syncSupabaseUser()` to check by `supabase_id` first
+- ✅ Prevents duplicate key constraint violations
+- ✅ Updates existing user's `supabase_id` if not set
+
+**Routing Fix for Canvas Creation:**
+- ✅ Fixed navigation after creating new canvas documents
+- ✅ Added `navigate()` to update URL with new document ID
+- ✅ Prevents `GET /api/documents/undefined` errors
+- ✅ Applied to both manual save and auto-save functions
+
+#### 📁 Files Changed
+
+**Backend:**
+- `application.yml` - PostgreSQL configuration, Flyway enabled
+- `application-dev.yml` - PostgreSQL configuration, ddl-auto=update
+- `application-prod.yml` - PostgreSQL configuration, ddl-auto=update
+- `Document.java` - Added `@JdbcTypeCode(SqlTypes.JSON)` for canvasData
+- `UserRepository.java` - Added `findBySupabaseId()` method
+- `AuthService.java` - Updated user sync logic to handle duplicates
+
+**Frontend:**
+- `TextEditor.jsx` - Added navigation after document creation
+
+**Documentation:**
+- `README.md` - Updated with PostgreSQL migration info
+- `IMPLEMENTATION_PLAN.md` - Added v1.2.0 changelog
+- `CANVAS_IMPLEMENTATION_PLAN.md` - Updated canvas status
+- `DEVELOPMENT-SETUP.md` - Updated database setup instructions
+- `ARCHITECTURE.md` - Updated architecture diagram
+- `API-REFERENCE.md` - Updated API documentation
+- `DEPLOYMENT-GUIDE.md` - Updated deployment instructions
+
+#### 🔧 Technical Details
+
+**Database Configuration:**
+```yaml
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/writegy}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+```
+
+**Canvas JSONB Mapping:**
+```java
+@JdbcTypeCode(SqlTypes.JSON)
+@Column(columnDefinition = "jsonb")
+private String canvasData;
+```
+
+**User Sync Logic:**
+```java
+// First, try to find by supabase_id
+if (sub != null) {
+    Optional<User> existingBySupabaseId = userRepository.findBySupabaseId(sub);
+    if (existingBySupabaseId.isPresent()) {
+        // Update existing user
+        return existingBySupabaseId.get();
+    }
+}
+// Second, try to find by email
+return userRepository.findByEmail(email)
+    .map(existingUser -> {
+        // Update supabase_id if not set
+        if (sub != null && existingUser.getSupabaseId() == null) {
+            existingUser.setSupabaseId(sub);
+        }
+        return userRepository.save(existingUser);
+    })
+    .orElseGet(() -> {
+        // Create new user
+        User newUser = new User();
+        newUser.setSupabaseId(sub);
+        return userRepository.save(newUser);
+    });
+```
+
+**Routing Fix:**
+```javascript
+// After creating new document, navigate to correct URL
+setCurrentDocumentId(response.data.id)
+navigate(`/editor/${response.data.id}`, { replace: true })
+```
+
 ### v1.1.0 - Grammar Check Improvements (2026-03-26)
 
 #### ✨ New Features

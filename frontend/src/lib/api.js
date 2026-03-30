@@ -14,16 +14,11 @@ api.interceptors.request.use(
       // Get the JWT token from localStorage (stored by AuthContext)
       const token = localStorage.getItem('supabase_token')
       
-      console.log('API Request - Token from localStorage:', token)
-      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
-        console.log('API Request - Authorization header set')
-      } else {
-        console.log('API Request - No token found in localStorage')
       }
     } catch (error) {
-      console.warn('Failed to get token from localStorage:', error)
+      // Silently handle token retrieval errors
     }
     return config
   },

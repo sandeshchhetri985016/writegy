@@ -27,6 +27,18 @@ const FlowchartNode = ({ document, position, onEdit, onDelete, onToggle, isExpan
     }
   }
 
+  const handleTouchStart = (e) => {
+    // Only start drag if not clicking on buttons
+    const target = e.target.closest('button, a')
+    if (!target && e.touches.length === 1) {
+      e.stopPropagation()
+      e.preventDefault() // Prevent default touch behavior (scrolling)
+      onNodeClick(document.id)
+      const touch = e.touches[0]
+      onDragStart(document.id, touch.clientX, touch.clientY)
+    }
+  }
+
   return (
     <div
       data-node-id={document.id}
@@ -42,6 +54,7 @@ const FlowchartNode = ({ document, position, onEdit, onDelete, onToggle, isExpan
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {/* Handle (Top) - Input */}
       <div
@@ -414,8 +427,56 @@ const DocumentTreeView = ({ documents: rawDocuments, onDelete, onRefresh }) => {
     }
   }
 
-  const handleWheel = (e) => {
+  const handleTouchStart = (e) => {
+    // Start panning if touching background
+    if ((e.target === containerRef.current || e.target.closest('svg')) && e.touches.length === 1) {
+      e.preventDefault() // Prevent default touch behavior (scrolling)
+      setSelectedNodeId(null)
+      setIsPanning(true)
+      const touch = e.touches[0]
+      setLastMousePos({ x: touch.clientX, y: touch.clientY })
+    }
+  }
+
+  const handleTouchMove = (e) => {
+    if (isPanning && e.touches.length === 1) {
+      const touch = e.touches[0]
+      const dx = touch.clientX - lastMousePos.x
+      const dy = touch.clientY - lastMousePos.y
+      setViewport(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }))
+      setLastMousePos({ x: touch.clientX, y: touch.clientY })
+    } else if (draggingNodeId && containerRef.current && e.touches.length === 1) {
+      const touch = e.touches[0]
+      const containerRect = containerRef.current.getBoundingClientRect()
+      const mouseXWorld = (touch.clientX - containerRect.left - viewport.x) / viewport.scale
+      const mouseYWorld = (touch.clientY - containerRect.top - viewport.y) / viewport.scale
+
+      const deltaX = mouseXWorld - dragStartMousePos.current.x
+      const deltaY = mouseYWorld - dragStartMousePos.current.y
+
+      const newPositions = { ...customPositions }
+      
+      Object.entries(dragInitialPositions.current).forEach(([id, startPos]) => {
+        newPositions[id] = {
+          x: startPos.x + deltaX,
+          y: startPos.y + deltaY
+        }
+      })
+
+      setCustomPositions(newPositions)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setDraggingNodeId(null)
+    setIsPanning(false)
+  }
+
+  const handleWheel = useCallback((e) => {
     e.preventDefault()
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+    
     const zoomFactor = 1.05
     const direction = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor
     const newScale = Math.min(Math.max(0.1, viewport.scale * direction), 5)
@@ -428,7 +489,9 @@ const DocumentTreeView = ({ documents: rawDocuments, onDelete, onRefresh }) => {
     const newY = mouseY - (mouseY - viewport.y) * (newScale / viewport.scale)
     
     setViewport({ x: newX, y: newY, scale: newScale })
-  }
+    
+    return false
+  }, [viewport.scale, viewport.x, viewport.y])
 
   const handleResetView = useCallback(() => {
     if (!containerRef.current) return
@@ -516,6 +579,39 @@ const DocumentTreeView = ({ documents: rawDocuments, onDelete, onRefresh }) => {
     return () => window.removeEventListener('resize', handleResetView)
   }, [handleResetView])
 
+  // Native wheel event handler to prevent page scroll
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const nativeWheelHandler = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+      
+      const zoomFactor = 1.05
+      const direction = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor
+      const newScale = Math.min(Math.max(0.1, viewport.scale * direction), 5)
+      
+      const containerRect = container.getBoundingClientRect()
+      const mouseX = e.clientX - containerRect.left
+      const mouseY = e.clientY - containerRect.top
+      
+      const newX = mouseX - (mouseX - viewport.x) * (newScale / viewport.scale)
+      const newY = mouseY - (mouseY - viewport.y) * (newScale / viewport.scale)
+      
+      setViewport({ x: newX, y: newY, scale: newScale })
+      
+      return false
+    }
+
+    container.addEventListener('wheel', nativeWheelHandler, { passive: false })
+    
+    return () => {
+      container.removeEventListener('wheel', nativeWheelHandler)
+    }
+  }, [viewport.scale, viewport.x, viewport.y])
+
   // Initial fit to screen when nodes are loaded
   useEffect(() => {
     if (Object.keys(nodePositions).length > 0 && !hasInitializedView.current) {
@@ -573,11 +669,15 @@ const DocumentTreeView = ({ documents: rawDocuments, onDelete, onRefresh }) => {
     <div
       ref={containerRef}
       className="relative w-full h-full overflow-hidden bg-gray-50 cursor-grab active:cursor-grabbing select-none"
+      style={{ touchAction: 'none' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleDragEnd}
       onMouseLeave={handleDragEnd}
       onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Dot Background Pattern */}
       <div 

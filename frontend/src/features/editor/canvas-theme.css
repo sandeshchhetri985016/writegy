@@ -1,0 +1,102 @@
+/* Writegy Canvas Theme - Customizes tldraw to match Writegy design */
+
+/* CSS Variables for tldraw theming */
+.tldraw-wrapper {
+  /* Background */
+  --color-background: transparent;
+  
+  /* Panel colors - Match Writegy slate theme */
+  --color-panel: #ffffff;
+  --color-panel-contrast: #f8fafc; /* slate-50 */
+  
+  /* Text colors */
+  --color-text-1: #0f172a; /* slate-900 */
+  --color-text-2: #475569; /* slate-600 */
+  --color-text-3: #94a3b8; /* slate-400 */
+  
+  /* UI colors */
+  --color-divider: #e2e8f0; /* slate-200 */
+  --color-border: #cbd5e1; /* slate-300 */
+  
+  /* Brand colors - Match Writegy blue */
+  --color-selected: #3b82f6; /* brand-500 */
+  --color-selected-contrast: #dbeafe; /* brand-100 */
+  
+  /* Hover states */
+  --color-hover: #f1f5f9; /* slate-100 */
+  
+  /* Radius - Match Writegy rounded design */
+  --radius-panel: 1rem; /* 16px */
+  --radius-component: 0.5rem; /* 8px */
+  
+  /* Shadows - Match Writegy shadow style */
+  --shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-2: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Dark mode theming */
+.dark .tldraw-wrapper {
+  --color-background: transparent;
+  --color-panel: #1e293b; /* slate-800 */
+  --color-panel-contrast: #0f172a; /* slate-900 */
+  --color-text-1: #f1f5f9; /* slate-100 */
+  --color-text-2: #94a3b8; /* slate-400 */
+  --color-text-3: #64748b; /* slate-500 */
+  --color-divider: #334155; /* slate-700 */
+  --color-border: #475569; /* slate-600 */
+  --color-selected: #3b82f6; /* brand-500 */
+  --color-selected-contrast: #1e3a5f; /* brand-900/30 */
+  --color-hover: #1e293b; /* slate-800 */
+}
+
+/* Make tldraw panels match Writegy style */
+.tlui-menu-zone,
+.tlui-toolbar,
+.tlui-page-menu-zone,
+.tlui-navigation-zone {
+  background: var(--color-panel) !important;
+  border-radius: var(--radius-panel) !important;
+  box-shadow: var(--shadow-2) !important;
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* Style the toolbar buttons to match Writegy */
+.tlui-toolbar__button {
+  border-radius: var(--radius-component) !important;
+  transition: all 0.2s ease !important;
+}
+
+.tlui-toolbar__button:hover {
+  background: var(--color-hover) !important;
+}
+
+.tlui-toolbar__button[data-isactive="true"] {
+  background: var(--color-selected-contrast) !important;
+  color: var(--color-selected) !important;
+}
+
+/* Style the color picker to match Writegy */
+.tlui-color-picker {
+  border-radius: var(--radius-panel) !important;
+  box-shadow: var(--shadow-2) !important;
+}
+
+/* Style the style panel */
+.tlui-style-panel {
+  border-radius: var(--radius-panel) !important;
+  box-shadow: var(--shadow-2) !important;
+}
+
+/* Make sure canvas background is transparent */
+.tl-container {
+  background-color: transparent !important;
+}
+
+/* Smooth transitions for all tldraw elements */
+.tl-container,
+.tlui-menu-zone,
+.tlui-toolbar,
+.tlui-page-menu-zone,
+.tlui-navigation-zone {
+  transition: all 0.2s ease !important;
+}

@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class AuthService {
 
@@ -16,6 +18,7 @@ public class AuthService {
     /**
      * Sync Supabase user to local PostgreSQL database
      * This ensures users authenticated by Supabase exist in our local database
+     * Uses "Get or Create" pattern for concurrency safety
      */
     public User syncSupabaseUser(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof Jwt)) {
@@ -33,24 +36,44 @@ public class AuthService {
             throw new IllegalArgumentException("Email claim missing from JWT");
         }
 
-        // Check if user already exists
-        User existingUser = userRepository.findByEmail(email).orElse(null);
-
-        if (existingUser != null) {
-            // Update user info if changed
-            if (fullName != null && !fullName.equals(existingUser.getName())) {
-                existingUser.setName(fullName);
-                return userRepository.save(existingUser);
+        // First, try to find by supabase_id (most reliable for existing users)
+        if (sub != null) {
+            Optional<User> existingBySupabaseId = userRepository.findBySupabaseId(sub);
+            if (existingBySupabaseId.isPresent()) {
+                User existingUser = existingBySupabaseId.get();
+                // Update email and name if changed
+                if (!email.equals(existingUser.getEmail()) || 
+                    (fullName != null && !fullName.equals(existingUser.getName()))) {
+                    existingUser.setEmail(email);
+                    if (fullName != null) {
+                        existingUser.setName(fullName);
+                    }
+                    return userRepository.save(existingUser);
+                }
+                return existingUser;
             }
-            return existingUser;
         }
 
-        // Create new user from Supabase data
-        User newUser = new User();
-        newUser.setEmail(email);
-        newUser.setName(fullName != null ? fullName : email); // Fallback to email if no name
-        newUser.setSupabaseId(sub); // Store Supabase user ID
-
-        return userRepository.save(newUser);
+        // Second, try to find by email (for users without supabase_id set)
+        return userRepository.findByEmail(email)
+                .map(existingUser -> {
+                    // Update supabase_id if not set
+                    if (sub != null && existingUser.getSupabaseId() == null) {
+                        existingUser.setSupabaseId(sub);
+                    }
+                    // Update name if changed
+                    if (fullName != null && !fullName.equals(existingUser.getName())) {
+                        existingUser.setName(fullName);
+                    }
+                    return userRepository.save(existingUser);
+                })
+                .orElseGet(() -> {
+                    // Create new user from Supabase data
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setName(fullName != null ? fullName : email); // Fallback to email if no name
+                    newUser.setSupabaseId(sub); // Store Supabase user ID
+                    return userRepository.save(newUser);
+                });
     }
 }

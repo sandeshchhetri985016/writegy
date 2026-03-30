@@ -6,9 +6,9 @@ This guide explains how to deploy Writegy using **Render + Supabase** - our unif
 
 ## Architecture Overview
 
-- **Backend**: Render (Docker deployment, Java 25 + Spring Boot)
-- **Database**: Supabase PostgreSQL (managed)
-- **File Storage**: Supabase Storage (unlimited free, S3-compatible)
+- **Backend**: Render (Docker deployment, Java 21 + Spring Boot 3.4.4)
+- **Database**: Supabase PostgreSQL 16 (managed, 500MB free)
+- **File Storage**: Supabase Storage (1GB free, S3-compatible)
 - **Authentication**: Supabase JWT with OAuth2 Resource Server
 - **Security**: Rate limiting, CORS, file validation
 - **Memory**: Optimized for 512MB free tier (70MB max usage)

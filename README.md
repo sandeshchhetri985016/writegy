@@ -280,6 +280,14 @@ Your API will be live at: `https://writegy-backend.onrender.com`
 
 ## ✨ **Latest Features & Improvements**
 
+### **🗄️ PostgreSQL Migration (v1.2.0)** ⭐ **NEW**
+- ✅ **Persistent Database** - Migrated from H2 in-memory to Supabase PostgreSQL
+- ✅ **Data Persistence** - Documents now survive server restarts
+- ✅ **Flyway Migrations** - Automatic schema management enabled
+- ✅ **Canvas JSONB Fix** - Proper JSON mapping for canvas data
+- ✅ **Auth Duplicate Fix** - Prevents duplicate user creation errors
+- ✅ **Routing Fix** - New canvas documents navigate to correct URL
+
 ### **🚀 Dual-Mode Editor System**
 - ✅ **Rich Text Mode** - ReactQuill WYSIWYG editor with formatting toolbar
 - ✅ **Markdown Mode** - Full markdown editor with live preview and syntax highlighting

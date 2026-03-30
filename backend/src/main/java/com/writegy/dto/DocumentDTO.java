@@ -8,6 +8,8 @@ public class DocumentDTO {
     private Long id;
     private String title;
     private String content;
+    private String canvasData;
+    private String contentType;
     private DocumentStatus status;
     private Integer wordCount;
     private Integer characterCount;
@@ -92,4 +94,10 @@ public class DocumentDTO {
 
     public Integer getTreeOrder() { return treeOrder; }
     public void setTreeOrder(Integer treeOrder) { this.treeOrder = treeOrder; }
+
+    public String getCanvasData() { return canvasData; }
+    public void setCanvasData(String canvasData) { this.canvasData = canvasData; }
+
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
 }

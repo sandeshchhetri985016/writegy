@@ -55,12 +55,12 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
     <div className="animate-fade-in">
       {/* Main Document Item */}
       <div
-        className={`group flex items-center py-3 px-4 rounded-lg transition-all duration-200 cursor-pointer ${
+        className={`group flex items-center py-2 px-3 rounded-lg transition-all duration-200 cursor-pointer ${
           isHovered 
             ? 'bg-brand-50 dark:bg-brand-900/20 shadow-sm' 
             : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
         }`}
-        style={{ paddingLeft: `${16 + indent}px` }}
+        style={{ paddingLeft: `${indent}px` }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -71,7 +71,7 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
               e.stopPropagation()
               onToggle(document.id)
             }}
-            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 mr-2 flex-shrink-0 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex-shrink-0 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
             {expandedItems.has(document.id) ? (
               <ChevronDown className="w-4 h-4" />
@@ -80,7 +80,6 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
             )}
           </button>
         )}
-        {!hasChildren && <div className="w-6 mr-2 flex-shrink-0" />}
 
         {/* Document Icon */}
         <div className="mr-3 flex-shrink-0">
@@ -100,15 +99,12 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
           <div className="flex items-center">
             <Link
               to={`/editor/${document.id}`}
-              className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+              className="text-sm sm:text-base font-medium text-slate-900 dark:text-slate-100 truncate hover:text-brand-600 dark:hover:text-brand-400 transition-colors pr-2"
             >
               {document.title}
             </Link>
-            <span className="ml-3 text-xs text-slate-400 dark:text-slate-500">
-              {document.wordCount || 0} words
-            </span>
             {level > 0 && (
-              <span className="ml-2 badge-brand text-xs">
+              <span className="ml-2 badge-brand text-xs flex-shrink-0">
                 Child
               </span>
             )}

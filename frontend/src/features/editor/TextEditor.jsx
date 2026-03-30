@@ -116,13 +116,13 @@ const TextEditor = () => {
     }
   }, [])
 
-  const shouldRestoreDraft = searchParams.get('draft') === 'true'
+  const documentType = searchParams.get('type') || 'text' // 'text' or 'canvas' from URL
 
   const [document, setDocument] = useState({
     title: '',
     content: ''
   })
-  const [documentMode, setDocumentMode] = useState('text') // 'text', 'canvas', 'hybrid'
+  const [contentType, setContentType] = useState(documentType) // Initialize from URL param
   const [canvasData, setCanvasData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -139,10 +139,11 @@ const TextEditor = () => {
   const [appliedSuggestions, setAppliedSuggestions] = useState(new Set())
   const [highlightedText, setHighlightedText] = useState('')
   const [screenReaderStatus, setScreenReaderStatus] = useState('')
+  const [currentDocumentId, setCurrentDocumentId] = useState(id)
   const quillRef = useRef(null)
 
   useEffect(() => {
-    if (id) {
+    if (id && id !== 'undefined') {
       loadDocument()
     }
   }, [id])
@@ -156,70 +157,84 @@ const TextEditor = () => {
   }, [document.content])
 
   useEffect(() => {
-    if (!id && shouldRestoreDraft) {
-      const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
-      const savedDraft = localStorage.getItem(draftKey)
-      if (savedDraft) {
-        try {
-          const draft = JSON.parse(savedDraft)
-          if (draft.title || draft.content) {
-            setDocument({
-              title: draft.title || '',
-              content: draft.content || ''
-            })
-            if (draft.documentId) {
-              navigate(`/editor/${draft.documentId}?draft=true`, { replace: true })
-            } else {
-              toast.success('Draft restored from previous session')
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to restore draft:', error)
-        }
-      }
+    if (currentDocumentId) {
+      loadDocument()
     }
-  }, [user, id, shouldRestoreDraft, navigate])
+  }, [currentDocumentId])
 
+  // Auto-save to server every 3 seconds
   useEffect(() => {
-    if (!document.title.trim() && !document.content.trim()) return
-    if (document.content === lastSavedContent) return
+    if (!document.title.trim() && !document.content.trim() && !canvasData) return
+    if (document.content === lastSavedContent && !canvasData) return
 
     setAutoSaveStatus('Saving...')
     const saveTimeout = setTimeout(() => {
-      autoSaveDraft()
-    }, 2000)
+      autoSaveToServer()
+    }, 3000)
 
     return () => clearTimeout(saveTimeout)
-  }, [document.content, document.title, lastSavedContent, user])
+  }, [document.content, document.title, canvasData, lastSavedContent, user])
 
-  const autoSaveDraft = () => {
-    if (!document.title.trim() && !document.content.trim()) return
-    if (document.content === lastSavedContent) return
+  const autoSaveToServer = async () => {
+    const hasContent = document.title.trim() || document.content.trim() || canvasData
+    if (!hasContent) {
+      // If empty, delete the document if it exists
+      if (currentDocumentId) {
+        try {
+          await documentApi.deleteDocument(currentDocumentId)
+          setCurrentDocumentId(null)
+          setDocument({ title: '', content: '' })
+          setCanvasData(null)
+          setAutoSaveStatus('Empty document discarded')
+          setTimeout(() => setAutoSaveStatus(''), 3000)
+        } catch (error) {
+          console.error('Failed to delete empty document:', error)
+        }
+      }
+      return
+    }
 
     try {
-      const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
-      const draft = {
-        documentId: id,
-        title: document.title,
-        content: document.content,
-        timestamp: new Date().toISOString()
+      if (currentDocumentId) {
+        // Update existing document
+        if (contentType === 'canvas') {
+          await documentApi.updateCanvasData(currentDocumentId, canvasData)
+        } else {
+          await documentApi.updateDocument(currentDocumentId, {
+            title: document.title || 'Untitled',
+            content: document.content
+          })
+        }
+      } else {
+        // Create new document
+        if (contentType === 'canvas') {
+          const dataToSend = canvasData || '{}'
+          const response = await documentApi.createCanvasDocument(
+            document.title || 'Untitled',
+            dataToSend
+          )
+          setCurrentDocumentId(response.data.id)
+          // Navigate to the new document URL
+          navigate(`/editor/${response.data.id}`, { replace: true })
+        } else {
+          const response = await documentApi.uploadDocument(
+            null,
+            document.title || 'Untitled',
+            document.content
+          )
+          setCurrentDocumentId(response.data.id)
+          // Navigate to the new document URL
+          navigate(`/editor/${response.data.id}`, { replace: true })
+        }
       }
-
-      localStorage.setItem(draftKey, JSON.stringify(draft))
       setLastSavedContent(document.content)
-      setAutoSaveStatus('Draft saved')
+      setAutoSaveStatus('Saved')
       setTimeout(() => setAutoSaveStatus(''), 3000)
     } catch (error) {
-      console.warn('Failed to auto-save draft:', error)
+      console.error('Auto-save failed:', error)
+      setAutoSaveStatus('Save failed')
+      setTimeout(() => setAutoSaveStatus(''), 3000)
     }
-  }
-
-  const clearDraft = () => {
-    const draftKey = `writegy_draft_${user?.id || 'anonymous'}`
-    localStorage.removeItem(draftKey)
-    setLastSavedContent(document.content)
-    setAutoSaveStatus('Saved to server')
-    setTimeout(() => setAutoSaveStatus(''), 3000)
   }
 
   const loadDocument = async () => {
@@ -230,6 +245,14 @@ const TextEditor = () => {
         title: response.data.title,
         content: response.data.content
       })
+      // Set content type from loaded document
+      if (response.data.contentType) {
+        setContentType(response.data.contentType)
+      }
+      // Load canvas data if it's a canvas document
+      if (response.data.canvasData) {
+        setCanvasData(response.data.canvasData)
+      }
     } catch (error) {
       console.error('Failed to load document:', error)
       toast.error('Failed to load document')
@@ -240,30 +263,49 @@ const TextEditor = () => {
   }
 
   const handleSave = async () => {
-    if (!document.title.trim()) {
-      toast.error('Please enter a title')
+    if (!document.title.trim() && !document.content.trim() && !canvasData) {
+      toast.error('Please add some content before saving')
       return
     }
 
     try {
       setSaving(true)
-      if (id) {
-        await documentApi.updateDocument(id, {
-          title: document.title,
-          content: document.content
-        })
+      if (currentDocumentId) {
+        // Update existing document
+        if (contentType === 'canvas') {
+          await documentApi.updateCanvasData(currentDocumentId, canvasData)
+        } else {
+          await documentApi.updateDocument(currentDocumentId, {
+            title: document.title || 'Untitled',
+            content: document.content
+          })
+        }
         toast.success('Document saved successfully')
-        clearDraft()
       } else {
-        const response = await documentApi.uploadDocument(
-          null,
-          document.title,
-          document.content
-        )
-        toast.success('Document created successfully')
-        clearDraft()
-        navigate(`/editor/${response.data.id}`)
+        // Create new document
+        if (contentType === 'canvas') {
+          const dataToSend = canvasData || '{}'
+          const response = await documentApi.createCanvasDocument(
+            document.title || 'Untitled',
+            dataToSend
+          )
+          toast.success('Canvas notebook created successfully')
+          setCurrentDocumentId(response.data.id)
+          // Navigate to the new document URL
+          navigate(`/editor/${response.data.id}`, { replace: true })
+        } else {
+          const response = await documentApi.uploadDocument(
+            null,
+            document.title || 'Untitled',
+            document.content
+          )
+          toast.success('Text document created successfully')
+          setCurrentDocumentId(response.data.id)
+          // Navigate to the new document URL
+          navigate(`/editor/${response.data.id}`, { replace: true })
+        }
       }
+      setLastSavedContent(document.content)
     } catch (error) {
       console.error('Failed to save document:', error)
       toast.error('Failed to save document')
@@ -555,98 +597,39 @@ const TextEditor = () => {
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-3 flex-shrink-0">
-        <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
-          <div className="flex items-center space-x-4">
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-2 sm:px-3 md:px-4 lg:px-6 py-2 flex-shrink-0">
+        <div className="flex items-center justify-between max-w-screen-2xl mx-auto gap-1 md:gap-2 lg:gap-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 rounded-md px-2 py-1 transition-colors"
+              className="flex items-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 rounded-md px-1 sm:px-2 py-1 transition-colors"
               aria-label="Back to Dashboard"
             >
-              <ArrowLeft className="w-5 h-5 mr-2" aria-hidden="true" />
-              <span className="text-sm font-medium">Back to Dashboard</span>
+              <ArrowLeft className="w-5 h-5 sm:mr-2" aria-hidden="true" />
+              <span className="hidden sm:inline text-sm font-medium">Back to Dashboard</span>
             </button>
 
-            <div className="h-6 border-l border-slate-300 dark:border-slate-600" aria-hidden="true"></div>
-
-            <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
-              <span className="text-sm text-slate-600 dark:text-slate-400" aria-live="polite">
-                {id ? 'Editing Document' : 'New Document'}
-              </span>
-            </div>
           </div>
 
           <div className="flex items-center space-x-3">
             {/* Word/Character Count */}
-            <div className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">
+            <div className="text-sm text-slate-500 dark:text-slate-400 hidden lg:block">
               {wordCount} words • {charCount} characters
             </div>
 
             {/* Auto-save Status */}
             {autoSaveStatus && (
-              <div className="flex items-center text-sm text-success-600 dark:text-success-400 animate-fade-in">
+              <div className="hidden md:flex items-center text-sm text-success-600 dark:text-success-400 animate-fade-in">
                 <CheckCircle className="w-4 h-4 mr-1" />
                 {autoSaveStatus}
               </div>
             )}
 
-            {/* Document Mode Toggle (Text / Canvas) */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
-              <button
-                onClick={() => setDocumentMode('text')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 ${
-                  documentMode === 'text'
-                    ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-              >
-                <Type className="w-4 h-4" />
-                Text
-              </button>
-              <button
-                onClick={() => setDocumentMode('canvas')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 ${
-                  documentMode === 'canvas'
-                    ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-              >
-                <PenTool className="w-4 h-4" />
-                Canvas
-              </button>
-            </div>
-
-            {/* Text Editor Mode Toggle (only show when in text mode) */}
-            {documentMode === 'text' && (
-              <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
-                <button
-                  onClick={() => setEditorMode('rich-text')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                    editorMode === 'rich-text'
-                      ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  Rich Text
-                </button>
-                <button
-                  onClick={() => setEditorMode('markdown')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                    editorMode === 'markdown'
-                      ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  Markdown
-                </button>
-              </div>
-            )}
 
             {/* Preview Toggle */}
             <button
               onClick={() => setPreviewMode(!previewMode)}
-              className="btn-secondary"
+              className="btn-secondary hidden md:flex"
             >
               {previewMode ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
               {previewMode ? 'Edit' : 'Preview'}
@@ -655,7 +638,7 @@ const TextEditor = () => {
             {/* File Upload */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="btn-secondary"
+              className="btn-secondary hidden lg:flex"
               disabled={loading}
             >
               <Upload className="w-4 h-4 mr-2" />
@@ -673,18 +656,17 @@ const TextEditor = () => {
             <button
               onClick={handleSave}
               disabled={saving || !document.title.trim()}
-              className="btn-primary h-10"
-              style={{ minWidth: '100px' }}
+              className="btn-primary h-10 min-w-[60px] sm:min-w-[100px]"
             >
               {saving ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span className="ml-2">Saving...</span>
+                  <span className="hidden sm:inline ml-2">Saving...</span>
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
+                  <Save className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Save</span>
                 </>
               )}
             </button>
@@ -704,16 +686,43 @@ const TextEditor = () => {
       {/* Editor */}
       <div className="flex-1 flex overflow-hidden">
         {/* Formatting Toolbar */}
-        {!previewMode && (
+        {!previewMode && contentType === 'text' && (
           <div className="w-14 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col items-center py-4 space-y-3 flex-shrink-0">
             <button
               onClick={handleGrammarCheck}
               className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-all duration-200"
-              title="Grammar Check"
+              title="Grammar Check (Ctrl+G)"
               disabled={!document.content.replace(/<[^>]*>/g, '').trim()}
             >
               <SpellCheck className="w-5 h-5" />
             </button>
+
+            {/* Text Editor Mode Toggle */}
+            <div className="flex flex-col items-center space-y-2 py-2 border-t border-slate-200 dark:border-slate-700 w-full px-2 mt-2">
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Mode</span>
+              <button
+                onClick={() => setEditorMode('rich-text')}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  editorMode === 'rich-text'
+                    ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+                title="Rich Text Editor"
+              >
+                <Type className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setEditorMode('markdown')}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  editorMode === 'markdown'
+                    ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+                title="Markdown Editor"
+              >
+                <span className="text-sm font-bold">MD</span>
+              </button>
+            </div>
 
             {id && (
               <button
@@ -731,19 +740,19 @@ const TextEditor = () => {
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800">
           {/* Content Area - Constrained Width */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-editor mx-auto px-8 py-6">
+            <div className="max-w-editor mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
               {/* Title Input - Seamless H1 Style */}
               <input
                 type="text"
                 placeholder="Document Title..."
                 value={document.title}
                 onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 font-sans mb-6 pb-4 border-b border-slate-200 dark:border-slate-700"
+                className="w-full text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 font-sans mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700"
               />
 
-              {/* Content Area - Conditionally render based on document mode */}
-              {documentMode === 'canvas' ? (
-                <div className="h-[600px] border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+              {/* Content Area - Conditionally render based on content type */}
+              {contentType === 'canvas' ? (
+                <div className="h-[400px] md:h-[500px] lg:h-[600px] border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                   <Suspense fallback={
                     <div className="flex items-center justify-center h-full">
                       <LoadingSpinner size="lg" />
