@@ -41,6 +41,8 @@ public class SecurityConfig {
                         auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers("/auth/**").permitAll()
                                 .requestMatchers("/actuator/health").permitAll()
+                                .requestMatchers("/actuator/prometheus").authenticated()
+                                .requestMatchers("/actuator/**").authenticated()
                                 .requestMatchers("/api/documents/**").authenticated()
                                 .requestMatchers("/api/grammar/check").authenticated()
                                 .anyRequest().denyAll()

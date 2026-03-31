@@ -56,25 +56,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-                // In development mode, allow authentication even if JWT signature verification fails
-                // This is because Supabase JWK keys may rotate and cause temporary verification failures
+                // Enforce strict JWT signature validation - only authenticate if token is valid
                 boolean isValidToken = jwtUtil.validateToken(jwt, userDetails);
                 
                 if (isValidToken) {
                     logger.debug("JWT validation successful for user: {}", username);
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    // In development, log warning but still allow authentication
-                    logger.warn("JWT signature verification failed for user: {} - allowing in dev mode", username);
+                    // SECURITY: Reject authentication if token validation fails
+                    logger.warn("SECURITY: JWT signature verification failed for user: {} - authentication rejected", username);
                 }
                 
-                // Set authentication regardless of signature verification in dev mode
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                
             } catch (Exception e) {
-                logger.error("Error during JWT authentication: " + e.getMessage());
+                // SECURITY: Log authentication errors and do not set authentication
+                logger.error("SECURITY: JWT authentication failed - {}", e.getMessage());
             }
         }
 

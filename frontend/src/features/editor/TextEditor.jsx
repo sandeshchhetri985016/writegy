@@ -134,6 +134,7 @@ const TextEditor = () => {
   const [lastSavedContent, setLastSavedContent] = useState('')
   const [grammarSuggestions, setGrammarSuggestions] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isFixing, setIsFixing] = useState(false)
   const [showAddChildModal, setShowAddChildModal] = useState(false)
   const [fullCorrectionApplied, setFullCorrectionApplied] = useState(false)
   const [appliedSuggestions, setAppliedSuggestions] = useState(new Set())
@@ -371,6 +372,7 @@ const TextEditor = () => {
       return
     }
 
+    setIsFixing(true)
     try {
       setGrammarSuggestions('Checking grammar...')
       setShowSuggestions(true)
@@ -389,8 +391,20 @@ const TextEditor = () => {
       }
     } catch (error) {
       console.error('Grammar check failed:', error)
-      setGrammarSuggestions('Grammar check failed. Please try again.')
-      toast.error('Grammar check failed. Please try again.')
+      
+      // Handle 504 Gateway Timeout specifically
+      if (error.response?.status === 504) {
+        toast.error('AI service timed out. Please try again in a moment.')
+        setGrammarSuggestions('The AI service took too long to respond. Please try again.')
+      } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        toast.error('Request timed out. The AI service may be busy.')
+        setGrammarSuggestions('Request timed out. Please try again.')
+      } else {
+        toast.error('Grammar check failed. Please try again.')
+        setGrammarSuggestions('Grammar check failed. Please try again.')
+      }
+    } finally {
+      setIsFixing(false)
     }
   }
 
@@ -690,11 +704,22 @@ const TextEditor = () => {
           <div className="w-14 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col items-center py-4 space-y-3 flex-shrink-0">
             <button
               onClick={handleGrammarCheck}
-              className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-all duration-200"
-              title="Grammar Check (Ctrl+G)"
-              disabled={!document.content.replace(/<[^>]*>/g, '').trim()}
+              className={`p-2.5 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                isFixing
+                  ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 cursor-wait'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20'
+              }`}
+              title={isFixing ? 'Analyzing...' : 'Grammar Check (Ctrl+G)'}
+              disabled={isFixing || !document.content.replace(/<[^>]*>/g, '').trim()}
             >
-              <SpellCheck className="w-5 h-5" />
+              {isFixing ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  <span className="text-xs font-medium">Thinking...</span>
+                </>
+              ) : (
+                <SpellCheck className="w-5 h-5" />
+              )}
             </button>
 
             {/* Text Editor Mode Toggle */}
@@ -738,60 +763,60 @@ const TextEditor = () => {
 
         {/* Editor Content */}
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800">
-          {/* Content Area - Constrained Width */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-editor mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
-              {/* Title Input - Seamless H1 Style */}
-              <input
-                type="text"
-                placeholder="Document Title..."
-                value={document.title}
-                onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 font-sans mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700"
+          {/* Canvas Mode - No scroll wrapper, canvas fills the space */}
+          {contentType === 'canvas' ? (
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-full">
+                <LoadingSpinner size="lg" />
+              </div>
+            }>
+              <CanvasEditor
+                initialData={canvasData}
+                onSave={(data) => {
+                  setCanvasData(data)
+                  // Auto-save canvas data
+                  if (id) {
+                    documentApi.updateCanvasData(id, data).catch(console.error)
+                  }
+                }}
               />
+            </Suspense>
+          ) : (
+            /* Text Mode - Scrollable content area */
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-editor mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                {/* Title Input - Seamless H1 Style */}
+                <input
+                  type="text"
+                  placeholder="Document Title..."
+                  value={document.title}
+                  onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 font-sans mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700"
+                />
 
-              {/* Content Area - Conditionally render based on content type */}
-              {contentType === 'canvas' ? (
-                <div className="h-[400px] md:h-[500px] lg:h-[600px] border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                  <Suspense fallback={
-                    <div className="flex items-center justify-center h-full">
-                      <LoadingSpinner size="lg" />
-                    </div>
-                  }>
-                    <CanvasEditor
-                      initialData={canvasData}
-                      onSave={(data) => {
-                        setCanvasData(data)
-                        // Auto-save canvas data
-                        if (id) {
-                          documentApi.updateCanvasData(id, data).catch(console.error)
-                        }
-                      }}
-                      className="h-full"
-                    />
-                  </Suspense>
-                </div>
-              ) : previewMode ? (
-                renderPreview(document.content)
-              ) : editorMode === 'markdown' ? (
-                <MarkdownEditor
-                  value={document.content}
-                  onChange={(content) => setDocument(prev => ({ ...prev, content }))}
-                  placeholder="Start writing in Markdown..."
-                  className="min-h-[400px]"
-                />
-              ) : (
-                <QuillWrapper
-                  ref={quillRef}
-                  theme="snow"
-                  value={document.content}
-                  onChange={(content) => setDocument(prev => ({ ...prev, content }))}
-                  className="min-h-[400px]"
-                  placeholder="Start writing your document..."
-                />
-              )}
+                {/* Content Area - Text content types */}
+                {previewMode ? (
+                  renderPreview(document.content)
+                ) : editorMode === 'markdown' ? (
+                  <MarkdownEditor
+                    value={document.content}
+                    onChange={(content) => setDocument(prev => ({ ...prev, content }))}
+                    placeholder="Start writing in Markdown..."
+                    className="min-h-[400px]"
+                  />
+                ) : (
+                  <QuillWrapper
+                    ref={quillRef}
+                    theme="snow"
+                    value={document.content}
+                    onChange={(content) => setDocument(prev => ({ ...prev, content }))}
+                    className="min-h-[400px]"
+                    placeholder="Start writing your document..."
+                  />
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Grammar Suggestions Panel */}

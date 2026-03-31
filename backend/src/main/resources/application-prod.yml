@@ -13,8 +13,8 @@ spring:
     password: ${DATABASE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 3          # Free tier friendly - prevent DB connection exhaustion
-      minimum-idle: 1               # Minimum connections to maintain
+      maximum-pool-size: 15         # Safe baseline for Supabase connection pooler
+      minimum-idle: 5               # Maintain minimum connections for responsiveness
       connection-timeout: 20000     # 20 second timeout
       idle-timeout: 300000          # 5 minutes idle timeout
       max-lifetime: 1200000         # 20 minutes max lifetime
