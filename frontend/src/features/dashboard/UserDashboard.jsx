@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { documentApi } from '../../lib/api'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   FileText,
   Plus,
@@ -20,64 +21,32 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 
 const UserDashboard = () => {
   const { user, loading: authLoading } = useAuth()
-  const [documents, setDocuments] = useState([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState('list')
   const [showNewDocMenu, setShowNewDocMenu] = useState(false)
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 770)
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 640)
   const newDocMenuRef = useRef(null)
+
+  // React Query handles fetching, caching, and loading states!
+  const { data: response, isLoading: documentsLoading } = useQuery({
+    queryKey: ['documents'],
+    queryFn: documentApi.getAllDocuments,
+    enabled: !!user && !authLoading, // Only run if user is loaded
+  })
+
+  const documents = response?.data || []
+  const loading = authLoading || documentsLoading
 
   // Listen for window resize to detect screen size changes
   useEffect(() => {
     const handleResize = () => {
-      setIsSmallScreen(window.innerWidth < 770)
+      setIsSmallScreen(window.innerWidth < 640)
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  useEffect(() => {
-    if (user && !authLoading) {
-      loadDocuments()
-    } else if (!authLoading) {
-      setLoading(false)
-    }
-  }, [user, authLoading])
-
-  const loadDocuments = async () => {
-    try {
-      setLoading(true)
-      const response = await documentApi.getAllDocuments()
-      setDocuments(response.data || [])
-    } catch (error) {
-      console.error('Failed to load documents:', error)
-      toast.error('Failed to load documents')
-      setDocuments([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDeleteDocument = async (documentId, title) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      return
-    }
-
-    try {
-      await documentApi.deleteDocument(documentId)
-      toast.success('Document deleted successfully')
-      loadDocuments()
-    } catch (error) {
-      console.error('Failed to delete document:', error)
-      toast.error('Failed to delete document')
-    }
-  }
-
-  const filteredDocuments = documents.filter(doc =>
-    doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.content.toLowerCase().includes(searchTerm.toLowerCase())
-  )
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -89,6 +58,27 @@ const UserDashboard = () => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const handleDeleteDocument = async (documentId, title) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) {
+      return
+    }
+
+    try {
+      await documentApi.deleteDocument(documentId)
+      toast.success('Document deleted successfully')
+      // INVALIDATE: Tells React Query the cache is dirty, triggering a background refetch
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+    } catch (error) {
+      console.error('Failed to delete document:', error)
+      toast.error('Failed to delete document')
+    }
+  }
+
+  const filteredDocuments = documents.filter(doc =>
+    doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (doc.content && doc.content.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -111,7 +101,7 @@ const UserDashboard = () => {
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
       {/* Left Sidebar - Documents */}
-      <div className="w-full md:w-80 lg:w-96 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0">
+      <div className="w-full sm:w-64 md:w-72 lg:w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0">
         {/* Sidebar Header */}
         <div className="p-5 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-4">
@@ -233,13 +223,11 @@ const UserDashboard = () => {
             <DocumentTreeView
               documents={filteredDocuments}
               onDelete={handleDeleteDocument}
-              onRefresh={loadDocuments}
             />
           ) : (
             <DocumentListView
               documents={filteredDocuments}
               onDelete={handleDeleteDocument}
-              onRefresh={loadDocuments}
             />
           )}
         </div>
@@ -266,14 +254,13 @@ const UserDashboard = () => {
               <DocumentTreeView
                 documents={filteredDocuments}
                 onDelete={handleDeleteDocument}
-                onRefresh={loadDocuments}
               />
             </div>
           ) : (
             <div className="h-full overflow-y-auto p-8">
               <div className="max-w-4xl mx-auto space-y-8">
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                   <div className="card p-6">
                     <div className="flex items-center">
                       <div className="w-12 h-12 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center mr-4">

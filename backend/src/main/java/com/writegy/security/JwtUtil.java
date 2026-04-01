@@ -124,6 +124,36 @@ public class JwtUtil {
         }
     }
 
+    // Public method for stateless JWT validation
+    public Map<String, Object> extractAllClaims(String token) {
+        try {
+            JWTClaimsSet claims = getClaimsFromToken(token);
+            Map<String, Object> claimMap = new HashMap<>();
+            for (String key : claims.getClaims().keySet()) {
+                claimMap.put(key, claims.getClaims().get(key));
+            }
+            return claimMap;
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
+
+    // Public method for stateless JWT validation (no DB hit)
+    public boolean validateToken(String token, String expectedEmail) {
+        try {
+            JWTClaimsSet claims = getClaimsFromToken(token);
+            String email = claims.getStringClaim("email");
+            if (email == null) {
+                email = claims.getSubject();
+            }
+            boolean isNotExpired = !isTokenExpired(token);
+            boolean emailMatches = expectedEmail != null && expectedEmail.equals(email);
+            return emailMatches && isNotExpired;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private JWTClaimsSet getClaimsFromToken(String token) throws ParseException {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);

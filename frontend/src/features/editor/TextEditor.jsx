@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, forwardRef, Suspense } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { documentApi, grammarApi } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Save,
   ArrowLeft,
@@ -22,7 +23,10 @@ import CanvasEditor from './CanvasEditor'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import mammoth from 'mammoth'
-import * as pdfParse from 'pdf-parse'
+import * as pdfjsLib from 'pdfjs-dist'
+// Import worker from the mjs bundle for Vite compatibility
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import SuggestionPanel from './SuggestionPanel'
@@ -100,6 +104,7 @@ const TextEditor = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const fileInputRef = useRef(null)
 
   // Inject custom Quill styles
@@ -228,6 +233,8 @@ const TextEditor = () => {
           navigate(`/editor/${response.data.id}`, { replace: true })
         }
       }
+      // Invalidate documents cache after successful save
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
       setLastSavedContent(document.content)
       setAutoSaveStatus('Saved')
       setTimeout(() => setAutoSaveStatus(''), 3000)
@@ -306,6 +313,8 @@ const TextEditor = () => {
           navigate(`/editor/${response.data.id}`, { replace: true })
         }
       }
+      // Invalidate documents cache after successful save
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
       setLastSavedContent(document.content)
     } catch (error) {
       console.error('Failed to save document:', error)
@@ -319,9 +328,14 @@ const TextEditor = () => {
     const fileType = file.type
     if (fileType === 'application/pdf') {
       const arrayBuffer = await file.arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
-      const data = await pdfParse(uint8Array)
-      return data.text
+      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      let text = ''
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i)
+        const textContent = await page.getTextContent()
+        text += textContent.items.map(item => item.str).join(' ') + '\n'
+      }
+      return text
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const arrayBuffer = await file.arrayBuffer()
       const result = await mammoth.extractRawText({ arrayBuffer })
@@ -426,6 +440,8 @@ const TextEditor = () => {
         await documentApi.setDocumentParent(newDoc.id, id)
         toast.success('Child document created successfully!')
         setShowAddChildModal(false)
+        // Invalidate documents cache after creating child
+        queryClient.invalidateQueries({ queryKey: ['documents'] })
       }
     } catch (error) {
       console.error('Failed to create child document:', error)
@@ -774,10 +790,7 @@ const TextEditor = () => {
                 initialData={canvasData}
                 onSave={(data) => {
                   setCanvasData(data)
-                  // Auto-save canvas data
-                  if (id) {
-                    documentApi.updateCanvasData(id, data).catch(console.error)
-                  }
+                  // State update triggers the useEffect auto-save below
                 }}
               />
             </Suspense>

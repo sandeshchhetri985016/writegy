@@ -150,12 +150,21 @@ const CanvasEditor = forwardRef(({
               })
 
               if (onSave) {
-                editor.store.listen(() => {
-                  if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-                  saveTimeoutRef.current = setTimeout(() => {
-                    const snapshot = editor.getSnapshot()
-                    onSave(JSON.stringify(snapshot))
-                  }, 2000)
+                editor.store.listen((entry) => {
+                  // ONLY save if the user actually changed a shape, asset, or page.
+                  // Ignore camera movements, pointer changes, and presence data.
+                  const hasDocumentChanges =
+                    Object.keys(entry.changes.added).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:')) ||
+                    Object.keys(entry.changes.updated).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:')) ||
+                    Object.keys(entry.changes.removed).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:'))
+
+                  if (hasDocumentChanges && entry.source === 'user') {
+                    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+                    saveTimeoutRef.current = setTimeout(() => {
+                      const snapshot = editor.getSnapshot()
+                      onSave(JSON.stringify(snapshot))
+                    }, 2000)
+                  }
                 })
               }
             }}

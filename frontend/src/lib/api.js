@@ -39,7 +39,7 @@ api.interceptors.response.use(
       switch (status) {
         case 401:
           toast.error('Authentication required')
-          localStorage.removeItem('access_token')
+          localStorage.removeItem('supabase_token')
           window.location.href = '/login'
           break
         case 403:
@@ -73,7 +73,9 @@ export const documentApi = {
   // Upload document (hybrid approach)
   uploadDocument: (file, title, content) => {
     const formData = new FormData()
-    formData.append('file', file)
+    if (file) {
+      formData.append('file', file)
+    }
     formData.append('title', title)
     formData.append('content', content)
 

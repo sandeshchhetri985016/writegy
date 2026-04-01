@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   FileText,
   Folder,
@@ -14,6 +15,7 @@ import toast from 'react-hot-toast'
 import { documentApi } from '../../lib/api'
 
 const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedItems, onToggle, hasChildren }) => {
+  const queryClient = useQueryClient()
   const [showAddChild, setShowAddChild] = useState(false)
   const [newChildTitle, setNewChildTitle] = useState('')
   const [newChildContent, setNewChildContent] = useState('')
@@ -41,7 +43,8 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
         setNewChildTitle('')
         setNewChildContent('')
         setShowAddChild(false)
-        window.location.reload()
+        // Replaced window.location.reload() with proper cache invalidation!
+        queryClient.invalidateQueries({ queryKey: ['documents'] })
       }
     } catch (error) {
       console.error('Failed to create child document:', error)
