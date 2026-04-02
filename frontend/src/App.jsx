@@ -9,6 +9,8 @@ import Login from './features/auth/Login'
 import Register from './features/auth/Register'
 import UserDashboard from './features/dashboard/UserDashboard'
 import TextEditor from './features/editor/TextEditor'
+import Settings from './features/settings/Settings'
+import AdminDashboard from './features/admin/AdminDashboard'
 
 // Layout Components
 import Navbar from './components/Navbar'
@@ -23,6 +25,15 @@ const ProtectedRouteWrapper = ({ children }) => (
     {children}
   </ProtectedRoute>
 )
+
+// Admin Route Wrapper - checks for ADMIN role
+const AdminRoute = ({ children }) => {
+  const { user } = useAuth()
+  if (user?.role !== 'ADMIN') {
+    return <Navigate to="/dashboard" replace />
+  }
+  return children
+}
 
 // App Routes Component
 const AppRoutes = () => {
@@ -75,6 +86,26 @@ const AppRoutes = () => {
             element={
               <ProtectedRouteWrapper>
                 <TextEditor />
+              </ProtectedRouteWrapper>
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRouteWrapper>
+                <Settings />
+              </ProtectedRouteWrapper>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRouteWrapper>
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
               </ProtectedRouteWrapper>
             }
           />

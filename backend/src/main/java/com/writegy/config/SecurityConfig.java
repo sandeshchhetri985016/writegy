@@ -44,7 +44,10 @@ public class SecurityConfig {
                                 .requestMatchers("/actuator/prometheus").authenticated()
                                 .requestMatchers("/actuator/**").authenticated()
                                 .requestMatchers("/api/documents/**").authenticated()
+                                .requestMatchers("/api/settings/**").authenticated()
+                                .requestMatchers("/api/admin/**").authenticated()
                                 .requestMatchers("/api/grammar/check").authenticated()
+                                .requestMatchers("/api/export/**").authenticated()
                                 .anyRequest().denyAll()
                 );
 

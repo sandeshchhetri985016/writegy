@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { FileText, LogOut, User, Settings, ChevronDown, Moon, Sun } from 'lucide-react'
+import { FileText, LogOut, User, Settings, Shield, ChevronDown, Moon, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 
@@ -132,6 +132,17 @@ const Navbar = () => {
                     </div>
 
                     <div className="py-1">
+                      {user?.role === 'ADMIN' && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                        >
+                          <Shield className="w-4 h-4 mr-3 text-slate-400" />
+                          Admin Dashboard
+                        </Link>
+                      )}
+
                       <Link
                         to="/settings"
                         onClick={() => setShowUserMenu(false)}

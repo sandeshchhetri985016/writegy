@@ -33,6 +33,8 @@ languagetool:
 supabase:
   url: ${SUPABASE_URL}
   key: ${SUPABASE_KEY:placeholder-key}
+  jwt:
+    secret: ${SUPABASE_JWT_SECRET}
 
 cloudflare:
   r2:

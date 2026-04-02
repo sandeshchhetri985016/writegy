@@ -60,17 +60,14 @@ spring:
             required: true
 
   # Supabase Configuration
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${SUPABASE_URL}
-          jwk-set-uri: ${SUPABASE_URL}/auth/v1/.well-known/jwks.json
+
 
 # Supabase Configuration
 supabase:
   url: ${SUPABASE_URL}
   key: ${SUPABASE_KEY:placeholder-key}
+  jwt:
+    secret: ${SUPABASE_JWT_SECRET}
 
 # Cloudflare R2 Configuration
 cloudflare:

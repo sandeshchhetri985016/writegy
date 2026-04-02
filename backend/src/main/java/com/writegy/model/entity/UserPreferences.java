@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_preferences")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,19 +26,14 @@ public class UserPreferences {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Builder.Default
     private String theme = "light";
 
-    @Builder.Default
     private String language = "en";
 
-    @Builder.Default
     private Boolean autoSaveEnabled = true;
 
-    @Builder.Default
     private Boolean grammarCheckEnabled = true;
 
-    @Builder.Default
     private Boolean spellCheckEnabled = true;
 
     @CreatedDate

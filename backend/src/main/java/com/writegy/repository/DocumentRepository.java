@@ -20,6 +20,8 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     @Query("SELECT d FROM Document d WHERE d.user.id = :userId ORDER BY d.depth, d.treeOrder")
     List<Document> findAllByUserIdOrderByHierarchy(@Param("userId") Long userId);
 
+    long countByUserId(Long userId);
+
     /**
      * PERF-002 FIX: Check if startId is an ancestor of targetId using recursive CTE.
      * This replaces the O(N) while loop with a single database round-trip.

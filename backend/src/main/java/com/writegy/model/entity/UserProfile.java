@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_profiles")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,7 +32,6 @@ public class UserProfile {
     @Column(length = 500)
     private String avatar;
 
-    @Builder.Default
     private String timezone = "UTC";
 
     @CreatedDate

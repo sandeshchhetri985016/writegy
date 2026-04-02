@@ -16,6 +16,17 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Helper to get user role from backend
+  const fetchUserRole = async () => {
+    try {
+      const api = (await import('../lib/api')).default
+      const response = await api.get('/api/settings')
+      return response.data.role || 'FREE'
+    } catch {
+      return 'FREE'
+    }
+  }
+
   useEffect(() => {
     // Check for existing session on app load
     const checkSession = async () => {
@@ -27,11 +38,13 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (session) {
-          setUser(session.user)
           // Store the JWT token in localStorage for API requests
           if (session.access_token) {
             localStorage.setItem('supabase_token', session.access_token)
           }
+          // Fetch role from backend
+          const role = await fetchUserRole()
+          setUser({ ...session.user, role })
         }
       } catch (error) {
         console.error('Error checking session:', error)
@@ -46,11 +59,13 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session) {
-          setUser(session.user)
           // Store the JWT token in localStorage for API requests
           if (session.access_token) {
             localStorage.setItem('supabase_token', session.access_token)
           }
+          // Fetch role from backend
+          const role = await fetchUserRole()
+          setUser({ ...session.user, role })
         } else {
           setUser(null)
           // Clear the token from localStorage
