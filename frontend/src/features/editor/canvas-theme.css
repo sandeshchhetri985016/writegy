@@ -143,7 +143,9 @@
 /* Fix 2: Hide Tldraw watermark for development environment */
 .tl-watermark_logo, 
 .tl-watermark, 
-[data-testid="watermark"] {
+.tl-watermark_SEE-LICENSE,
+[data-testid="watermark"],
+[data-testid="tl-watermark-unlicensed"] {
   display: none !important;
   pointer-events: none !important;
 }

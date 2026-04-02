@@ -63,7 +63,7 @@ public class Document {
     private List<DocumentVersion> versions;
 
     // Tree hierarchy fields
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_id")
     @JsonIgnore
     private Document parent;

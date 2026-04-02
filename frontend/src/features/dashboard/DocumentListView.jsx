@@ -3,13 +3,15 @@ import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   FileText,
+  PenTool,
   Folder,
   FolderOpen,
   Edit,
   Trash2,
   Plus,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Type
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { documentApi } from '../../lib/api'
@@ -19,6 +21,7 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
   const [showAddChild, setShowAddChild] = useState(false)
   const [newChildTitle, setNewChildTitle] = useState('')
   const [newChildContent, setNewChildContent] = useState('')
+  const [newChildType, setNewChildType] = useState('text')
   const [isAddingChild, setIsAddingChild] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -33,18 +36,33 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
 
     setIsAddingChild(true)
     try {
-      await documentApi.uploadDocument(null, newChildTitle, newChildContent)
-      const response = await documentApi.getAllDocuments()
-      const newDoc = response.data.find(doc => doc.title === newChildTitle)
+      let newDocId;
+      
+      // Route to the correct API based on the selected type
+      if (newChildType === 'canvas') {
+        const response = await documentApi.createCanvasDocument(newChildTitle, '{}');
+        newDocId = response?.data?.id;
+        console.log('Canvas document created, response:', response?.data);
+      } else {
+        const response = await documentApi.uploadDocument(null, newChildTitle, newChildContent);
+        newDocId = response?.data?.id;
+        console.log('Text document created, response:', response?.data);
+      }
 
-      if (newDoc) {
-        await documentApi.setDocumentParent(newDoc.id, document.id)
-        toast.success('Child document created successfully!')
+      console.log('New document ID:', newDocId, 'Setting parent to:', document.id);
+
+      // Link the new document to the current parent
+      if (newDocId) {
+        await documentApi.setDocumentParent(newDocId, document.id)
+        toast.success(`Child ${newChildType === 'canvas' ? 'canvas' : 'document'} created successfully!`)
         setNewChildTitle('')
         setNewChildContent('')
+        setNewChildType('text')
         setShowAddChild(false)
         // Replaced window.location.reload() with proper cache invalidation!
         queryClient.invalidateQueries({ queryKey: ['documents'] })
+      } else {
+        toast.error('Failed to get document ID from server response')
       }
     } catch (error) {
       console.error('Failed to create child document:', error)
@@ -92,6 +110,8 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
             ) : (
               <Folder className="w-5 h-5 text-brand-500" />
             )
+          ) : document.contentType === 'canvas' ? (
+            <PenTool className="w-5 h-5 text-purple-500 dark:text-purple-400" />
           ) : (
             <FileText className="w-5 h-5 text-slate-400 dark:text-slate-500" />
           )}
@@ -155,6 +175,39 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
           style={{ marginLeft: `${32 + indent}px` }}
         >
           <form onSubmit={handleAddChildSubmit} className="space-y-3">
+            {/* Document Type Selector */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Document Type
+              </label>
+              <div className="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setNewChildType('text')}
+                  className={`flex-1 flex items-center justify-center py-2 text-sm font-medium rounded-md transition-all ${
+                    newChildType === 'text'
+                      ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Type className="w-4 h-4 mr-2" />
+                  Text Document
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewChildType('canvas')}
+                  className={`flex-1 flex items-center justify-center py-2 text-sm font-medium rounded-md transition-all ${
+                    newChildType === 'canvas'
+                      ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <PenTool className="w-4 h-4 mr-2" />
+                  Canvas Notebook
+                </button>
+              </div>
+            </div>
+
             <div>
               <input
                 type="text"
@@ -165,15 +218,17 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
                 required
               />
             </div>
-            <div>
-              <textarea
-                value={newChildContent}
-                onChange={(e) => setNewChildContent(e.target.value)}
-                placeholder="Child document content (optional)..."
-                rows={2}
-                className="input text-sm resize-none"
-              />
-            </div>
+            {newChildType === 'text' && (
+              <div>
+                <textarea
+                  value={newChildContent}
+                  onChange={(e) => setNewChildContent(e.target.value)}
+                  placeholder="Child document content (optional)..."
+                  rows={2}
+                  className="input text-sm resize-none"
+                />
+              </div>
+            )}
             <div className="flex justify-end space-x-2">
               <button
                 type="button"
@@ -181,6 +236,7 @@ const ListItem = ({ document, level = 0, onEdit, onDelete, onAddChild, expandedI
                   setShowAddChild(false)
                   setNewChildTitle('')
                   setNewChildContent('')
+                  setNewChildType('text')
                 }}
                 className="btn-secondary text-sm"
               >

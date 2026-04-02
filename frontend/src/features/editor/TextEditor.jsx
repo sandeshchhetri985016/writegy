@@ -146,6 +146,7 @@ const TextEditor = () => {
   const [highlightedText, setHighlightedText] = useState('')
   const [screenReaderStatus, setScreenReaderStatus] = useState('')
   const [currentDocumentId, setCurrentDocumentId] = useState(id)
+  const isSavingRef = useRef(false)
   const quillRef = useRef(null)
 
   useEffect(() => {
@@ -182,6 +183,12 @@ const TextEditor = () => {
   }, [document.content, document.title, canvasData, lastSavedContent, user])
 
   const autoSaveToServer = async () => {
+    // Prevent concurrent saves
+    if (isSavingRef.current) {
+      console.log('Auto-save skipped: save already in progress')
+      return
+    }
+
     const hasContent = document.title.trim() || document.content.trim() || canvasData
     if (!hasContent) {
       // If empty, delete the document if it exists
@@ -200,11 +207,15 @@ const TextEditor = () => {
       return
     }
 
+    isSavingRef.current = true
     try {
       if (currentDocumentId) {
         // Update existing document
         if (contentType === 'canvas') {
           await documentApi.updateCanvasData(currentDocumentId, canvasData)
+          await documentApi.updateDocument(currentDocumentId, {
+            title: document.title || 'Untitled'
+          })
         } else {
           await documentApi.updateDocument(currentDocumentId, {
             title: document.title || 'Untitled',
@@ -242,6 +253,8 @@ const TextEditor = () => {
       console.error('Auto-save failed:', error)
       setAutoSaveStatus('Save failed')
       setTimeout(() => setAutoSaveStatus(''), 3000)
+    } finally {
+      isSavingRef.current = false
     }
   }
 
@@ -271,17 +284,27 @@ const TextEditor = () => {
   }
 
   const handleSave = async () => {
+    // Prevent concurrent saves
+    if (isSavingRef.current) {
+      console.log('Manual save skipped: save already in progress')
+      return
+    }
+
     if (!document.title.trim() && !document.content.trim() && !canvasData) {
       toast.error('Please add some content before saving')
       return
     }
 
+    isSavingRef.current = true
     try {
       setSaving(true)
       if (currentDocumentId) {
         // Update existing document
         if (contentType === 'canvas') {
           await documentApi.updateCanvasData(currentDocumentId, canvasData)
+          await documentApi.updateDocument(currentDocumentId, {
+            title: document.title || 'Untitled'
+          })
         } else {
           await documentApi.updateDocument(currentDocumentId, {
             title: document.title || 'Untitled',
@@ -321,6 +344,7 @@ const TextEditor = () => {
       toast.error('Failed to save document')
     } finally {
       setSaving(false)
+      isSavingRef.current = false
     }
   }
 
@@ -426,22 +450,39 @@ const TextEditor = () => {
     setShowAddChildModal(true)
   }
 
-  const handleCreateChild = async (title, content) => {
+  const handleCreateChild = async (title, content, type) => {
     if (!title.trim()) {
       toast.error('Title is required')
       return
     }
 
     try {
-      await documentApi.uploadDocument(null, title, content)
-      const response = await documentApi.getAllDocuments()
-      const newDoc = response.data.find(doc => doc.title === title)
-      if (newDoc) {
-        await documentApi.setDocumentParent(newDoc.id, id)
-        toast.success('Child document created successfully!')
+      let newDocId;
+      
+      // Route to the correct API based on the selected type
+      if (type === 'canvas') {
+        const response = await documentApi.createCanvasDocument(title, '{}');
+        // Axios response: response.data is the response body (DocumentDTO)
+        newDocId = response?.data?.id;
+        console.log('Canvas document created, response:', response?.data);
+      } else {
+        const response = await documentApi.uploadDocument(null, title, content);
+        // Axios response: response.data is the response body (DocumentDTO)
+        newDocId = response?.data?.id;
+        console.log('Text document created, response:', response?.data);
+      }
+
+      console.log('New document ID:', newDocId, 'Setting parent to:', id);
+
+      // Link the new document to the current parent
+      if (newDocId) {
+        await documentApi.setDocumentParent(newDocId, id)
+        toast.success(`Child ${type === 'canvas' ? 'canvas' : 'document'} created successfully!`)
         setShowAddChildModal(false)
-        // Invalidate documents cache after creating child
+        // Clear the new child document from state to prevent re-render issues
         queryClient.invalidateQueries({ queryKey: ['documents'] })
+      } else {
+        toast.error('Failed to get document ID from server response')
       }
     } catch (error) {
       console.error('Failed to create child document:', error)
@@ -786,13 +827,23 @@ const TextEditor = () => {
                 <LoadingSpinner size="lg" />
               </div>
             }>
-              <CanvasEditor
-                initialData={canvasData}
-                onSave={(data) => {
-                  setCanvasData(data)
-                  // State update triggers the useEffect auto-save below
-                }}
-              />
+              <div className="flex flex-col h-full overflow-hidden">
+                {/* Title Input - Same as text mode */}
+                <input
+                  type="text"
+                  placeholder="Document Title..."
+                  value={document.title}
+                  onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full max-w-[800px] mx-auto px-4 py-3 text-2xl font-semibold bg-white border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 flex-shrink-0"
+                />
+                <CanvasEditor
+                  initialData={canvasData}
+                  onSave={(data) => {
+                    setCanvasData(data)
+                    // State update triggers the useEffect auto-save below
+                  }}
+                />
+              </div>
             </Suspense>
           ) : (
             /* Text Mode - Scrollable content area */
@@ -891,16 +942,51 @@ const TextEditor = () => {
 const AddChildForm = ({ onSubmit, onCancel }) => {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [docType, setDocType] = useState('text')
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit(title, content)
+    onSubmit(title, content, docType)
     setTitle('')
     setContent('')
+    setDocType('text')
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Document Type Selector */}
+      <div>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Document Type
+        </label>
+        <div className="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setDocType('text')}
+            className={`flex-1 flex items-center justify-center py-2 text-sm font-medium rounded-md transition-all ${
+              docType === 'text' 
+                ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <Type className="w-4 h-4 mr-2" />
+            Text Document
+          </button>
+          <button
+            type="button"
+            onClick={() => setDocType('canvas')}
+            className={`flex-1 flex items-center justify-center py-2 text-sm font-medium rounded-md transition-all ${
+              docType === 'canvas' 
+                ? 'bg-white dark:bg-slate-600 text-brand-600 dark:text-brand-400 shadow-sm' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <PenTool className="w-4 h-4 mr-2" />
+            Canvas Notebook
+          </button>
+        </div>
+      </div>
+
       <div>
         <label htmlFor="child-title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           Title *
@@ -916,21 +1002,23 @@ const AddChildForm = ({ onSubmit, onCancel }) => {
         />
       </div>
 
-      <div>
-        <label htmlFor="child-content" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-          Content
-        </label>
-        <textarea
-          id="child-content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={4}
-          className="input resize-none"
-          placeholder="Enter child document content (optional)"
-        />
-      </div>
+      {docType === 'text' && (
+        <div className="animate-fade-in">
+          <label htmlFor="child-content" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Initial Content
+          </label>
+          <textarea
+            id="child-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={3}
+            className="input resize-none"
+            placeholder="Enter content (optional)"
+          />
+        </div>
+      )}
 
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700 mt-6">
         <button type="button" onClick={onCancel} className="btn-secondary">
           Cancel
         </button>

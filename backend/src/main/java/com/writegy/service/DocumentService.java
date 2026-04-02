@@ -167,6 +167,7 @@ public class DocumentService {
     /**
      * Update document with both text content and canvas data.
      * Used for hybrid documents that have both text and canvas.
+     * Performs partial update - only non-null fields are updated.
      */
     public Document updateDocument(Long id, String title, String content, String canvasData, String contentType) {
         User currentUser = getCurrentUser();
@@ -178,13 +179,20 @@ public class DocumentService {
             throw new RuntimeException("Not authorized to update this document");
         }
 
-        document.setTitle(title);
-        document.setContent(content);
-        document.setCanvasData(canvasData);
-        document.setContentType(contentType);
-
-        // Calculate and set word/character counts for text content
-        calculateAndSetCounts(document);
+        // Partial update: only update fields that are non-null
+        if (title != null) {
+            document.setTitle(title);
+        }
+        if (content != null) {
+            document.setContent(content);
+            calculateAndSetCounts(document);
+        }
+        if (canvasData != null) {
+            document.setCanvasData(canvasData);
+        }
+        if (contentType != null) {
+            document.setContentType(contentType);
+        }
 
         return documentRepository.save(document);
     }
@@ -297,11 +305,14 @@ public class DocumentService {
             throw new RuntimeException("Not authorized to update this document");
         }
 
-        document.setTitle(title);
-        document.setContent(content);
-
-        // Calculate and set word/character counts
-        calculateAndSetCounts(document);
+        // Partial update: only update fields that are non-null
+        if (title != null) {
+            document.setTitle(title);
+        }
+        if (content != null) {
+            document.setContent(content);
+            calculateAndSetCounts(document);
+        }
 
         return documentRepository.save(document);
     }

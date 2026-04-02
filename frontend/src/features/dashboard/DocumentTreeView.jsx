@@ -4,6 +4,7 @@ import {
   ChevronRight,
   ChevronDown,
   FileText,
+  PenTool,
   Folder,
   FolderOpen,
   Edit,
@@ -76,6 +77,8 @@ const FlowchartNode = ({ document, position, onEdit, onDelete, onToggle, isExpan
           <div className="flex items-center gap-2 overflow-hidden">
             {hasChildren ? (
               isExpanded ? <FolderOpen className="w-4 h-4 text-blue-500" /> : <Folder className="w-4 h-4 text-blue-500" />
+            ) : document.contentType === 'canvas' ? (
+              <PenTool className="w-4 h-4 text-purple-500" />
             ) : (
               <FileText className="w-4 h-4 text-gray-400" />
             )}
