@@ -379,3 +379,43 @@
 .animate-pulse-slow {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* --- Premium Quill Editor Overrides --- */
+.ql-container.ql-snow {
+  border: none !important;
+}
+
+/* Kill the blue focus outline and shadow */
+.ql-container.ql-snow.ql-focus .ql-editor {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Sticky, frosted-glass toolbar */
+.ql-toolbar.ql-snow {
+  border: none !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 12px 0 !important;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.dark .ql-toolbar.ql-snow {
+  background: rgba(30, 41, 59, 0.95);
+  border-bottom: 1px solid #334155 !important;
+}
+
+/* Typography breathing room */
+.ql-editor {
+  font-size: 1.125rem !important;
+  line-height: 1.8 !important;
+  padding: 1rem 0 4rem 0 !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}

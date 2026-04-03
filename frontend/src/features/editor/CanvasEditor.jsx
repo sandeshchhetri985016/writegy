@@ -44,7 +44,8 @@ const NotebookBackground = () => {
 const CanvasEditor = forwardRef(({ 
   initialData, 
   onSave, 
-  readOnly = false
+  readOnly = false,
+  onExportReady
 }, ref) => {
   const editorRef = useRef(null)
   const saveTimeoutRef = useRef(null)
@@ -64,7 +65,7 @@ const CanvasEditor = forwardRef(({
   }, [])
 
   return (
-    <div className="w-full h-full flex justify-center bg-slate-100 overflow-hidden py-6 px-2 sm:px-4">
+    <div className="w-full h-full flex justify-center bg-slate-100 dark:bg-slate-900 overflow-hidden py-6 px-2 sm:px-4">
       <div 
         className="relative bg-white shadow-2xl border border-slate-300 rounded-md shrink-0 overflow-hidden"
         style={{ 
@@ -90,7 +91,44 @@ const CanvasEditor = forwardRef(({
               if (readOnly) {
                 editor.updateInstanceState({ isReadonly: true })
               }
-              
+
+              // === EXPORT FUNCTION ===
+              // Expose canvas export function to parent component
+              if (onExportReady) {
+                const exportCanvasAsImage = async (format = 'png') => {
+                  try {
+                    // Get all shape IDs
+                    const shapeIds = Array.from(editor.getCurrentPageShapeIds())
+                    if (shapeIds.length === 0) {
+                      toast.error('No shapes to export')
+                      return null
+                    }
+
+                    // Use tldraw's native toImage method
+                    // editor.toImage() returns an object with {blob, width, height}
+                    const result = await editor.toImage(shapeIds, {
+                      format: format,
+                      background: true,
+                      scale: 2
+                    })
+
+                    if (!result || !result.blob || !(result.blob instanceof Blob)) {
+                      console.error('Invalid result returned:', result)
+                      toast.error('Export failed')
+                      return null
+                    }
+
+                    return result.blob
+                  } catch (e) {
+                    console.error('Export failed:', e)
+                    toast.error('Export failed: ' + (e.message || 'Unknown error'))
+                    return null
+                  }
+                }
+                // Fix React state trap: wrap in closure so function isn't executed immediately
+                onExportReady(() => exportCanvasAsImage)
+              }
+
               // === THE BOUNDARY LOGIC ===
               editor.store.listen(() => {
                 const camera = editor.getCamera()
@@ -110,6 +148,89 @@ const CanvasEditor = forwardRef(({
                   editor.setCamera({ x: 0, y: targetY, z: 1 })
                 }
               })
+
+              // === IMAGE AUTO-RESIZE ===
+              // Automatically resize pasted images to fit within canvas bounds
+              const handleCreateShapes = (entry) => {
+                const shapes = entry.changes.added
+                Object.keys(shapes).forEach(id => {
+                  const shape = shapes[id]
+                  if (shape.type === 'image') {
+                    // Telemetry: Log shape structure for debugging
+                    console.log('Intercepted Shape:', shape)
+                    
+                    const MAX_WIDTH = 600
+                    const originalWidth = shape.props?.w || shape.w
+                    const originalHeight = shape.props?.h || shape.h
+                    
+                    if (originalWidth > MAX_WIDTH) {
+                      const scale = MAX_WIDTH / originalWidth
+                      const newHeight = originalHeight * scale
+                      
+                      console.log(`Resizing image: ${originalWidth}x${originalHeight} -> ${MAX_WIDTH}x${newHeight}`)
+                      
+                      editor.updateShapes([{
+                        id: shape.id,
+                        type: 'image',
+                        props: {
+                          w: MAX_WIDTH,
+                          h: newHeight
+                        }
+                      }])
+                    }
+                  }
+                })
+              }
+
+              // === BOUNDARY CONSTRAINT ===
+              // Constrain shapes to visible canvas area
+              const BOUNDS = { x: 0, y: 0, w: 800, h: 1131 }
+              const handleChangeShapes = (entry) => {
+                const shapes = entry.changes.updated
+                Object.keys(shapes).forEach(id => {
+                  const shape = shapes[id]
+                  if (shape.type === 'image' || shape.type === 'text' || shape.type === 'draw') {
+                    const { x, y, w, h } = shape
+                    let newX = x
+                    let newY = y
+                    let needsUpdate = false
+
+                    // Check if shape exceeds left boundary
+                    if (x < BOUNDS.x) {
+                      newX = BOUNDS.x
+                      needsUpdate = true
+                    }
+                    // Check if shape exceeds top boundary
+                    if (y < BOUNDS.y) {
+                      newY = BOUNDS.y
+                      needsUpdate = true
+                    }
+                    // Check if shape exceeds right boundary
+                    if (x + w > BOUNDS.x + BOUNDS.w) {
+                      newX = BOUNDS.x + BOUNDS.w - w
+                      needsUpdate = true
+                    }
+                    // Check if shape exceeds bottom boundary
+                    if (y + h > BOUNDS.y + BOUNDS.h) {
+                      newY = BOUNDS.y + BOUNDS.h - h
+                      needsUpdate = true
+                    }
+
+                    // Only update if shape actually exceeds bounds (performance guard)
+                    if (needsUpdate) {
+                      editor.updateShape({
+                        id: shape.id,
+                        type: shape.type,
+                        x: newX,
+                        y: newY
+                      })
+                    }
+                  }
+                })
+              }
+
+              editor.on('create-shapes', handleCreateShapes)
+              editor.on('change-shapes', handleChangeShapes)
               
               if (initialData) {
                 try {
@@ -130,6 +251,18 @@ const CanvasEditor = forwardRef(({
 
                   toast.success('Image uploaded successfully', { id: toastId })
 
+                  // Auto-resize image to max 600px width
+                  const MAX_WIDTH = 600
+                  let finalWidth = img.width
+                  let finalHeight = img.height
+                  
+                  if (img.width > MAX_WIDTH) {
+                    const scale = MAX_WIDTH / img.width
+                    finalWidth = MAX_WIDTH
+                    finalHeight = img.height * scale
+                    console.log(`Auto-resizing image: ${img.width}x${img.height} -> ${finalWidth}x${finalHeight}`)
+                  }
+
                   return {
                     id: assetId || `asset:${Math.random().toString(36).slice(2)}`,
                     type: 'image',
@@ -137,8 +270,8 @@ const CanvasEditor = forwardRef(({
                     props: {
                       name: file.name,
                       src: publicUrl,
-                      w: img.width,
-                      h: img.height,
+                      w: finalWidth,
+                      h: finalHeight,
                       mimeType: file.type,
                       isAnimated: file.type === 'image/gif'
                     }
@@ -148,6 +281,83 @@ const CanvasEditor = forwardRef(({
                   throw error
                 }
               })
+
+              // === HANDLE IMAGE RESIZE ON SHAPE CREATION ===
+              // This catches images added via paste (which may bypass registerExternalAssetHandler)
+              const handleStoreChange = (entry) => {
+                const addedShapes = entry.changes.added
+                
+                Object.keys(addedShapes).forEach(id => {
+                  if (id.startsWith('shape:')) {
+                    const shape = addedShapes[id]
+                    
+                    if (shape.type === 'image') {
+                      console.log('Intercepted Shape:', shape)
+                      
+                      const MAX_WIDTH = 600
+                      const originalWidth = shape.props?.w || shape.w
+                      const originalHeight = shape.props?.h || shape.h
+                      
+                      // Calculate reposition to center image in visible area
+                      let newX = shape.x
+                      let newY = shape.y
+                      
+                      // Get the center of the visible viewport
+                      const camera = editor.getCamera()
+                      const viewport = editor.getViewportScreenBounds()
+                      const centerX = -camera.x + viewport.w / 2
+                      const centerY = -camera.y + viewport.h / 2
+                      
+                      // If image is outside visible area, reposition to center
+                      if (shape.x < -100 || shape.x > 600 || shape.y < -100 || shape.y > 800) {
+                        // Center the image in the visible area
+                        newX = centerX - (originalWidth / 2)
+                        newY = centerY - (originalHeight / 2)
+                        console.log(`Repositioning image from (${shape.x}, ${shape.y}) to (${newX}, ${newY}) - center of viewport`)
+                      }
+                      
+                      if (originalWidth && originalWidth > MAX_WIDTH) {
+                        const scale = MAX_WIDTH / originalWidth
+                        const newHeight = originalHeight * scale
+                        
+                        console.log(`Resizing image: ${originalWidth}x${originalHeight} -> ${MAX_WIDTH}x${newHeight}`)
+                        
+                        // Use setTimeout to ensure shape is fully created before updating
+                        setTimeout(() => {
+                          // Get current shape to preserve all props
+                          const currentShape = editor.getShape(shape.id)
+                          if (currentShape) {
+                            console.log('Current shape props:', currentShape.props)
+                            editor.updateShapes([{
+                              id: shape.id,
+                              type: 'image',
+                              x: newX,
+                              y: newY,
+                              props: {
+                                ...currentShape.props,
+                                w: MAX_WIDTH,
+                                h: newHeight
+                              }
+                            }])
+                          }
+                        }, 0)
+                      } else if (newX !== shape.x || newY !== shape.y) {
+                        // Just reposition if no resize needed
+                        setTimeout(() => {
+                          editor.updateShapes([{
+                            id: shape.id,
+                            type: 'image',
+                            x: newX,
+                            y: newY
+                          }])
+                        }, 0)
+                      }
+                    }
+                  }
+                })
+              }
+              
+              editor.store.listen(handleStoreChange)
 
               if (onSave) {
                 editor.store.listen((entry) => {

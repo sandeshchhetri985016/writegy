@@ -229,7 +229,115 @@ export const exportToMarkdown = async (documentId) => {
  * @param {string} format - Export format (pdf, docx, md)
  * @returns {Promise<boolean>} Success status
  */
-export const exportDocument = async (documentId, format) => {
+/**
+ * Export canvas document to PDF format (client-side)
+ * @param {string} documentTitle - Document title
+ * @param {string} imageDataUrl - Base64 data URL of the canvas image
+ * @returns {Promise<boolean>} Success status
+ */
+export const exportCanvasToPdf = async (documentTitle, base64Image) => {
+  try {
+    // Load the image to get its intrinsic pixel dimensions
+    const img = new Image()
+    img.src = base64Image // The string returned from canvasExportFunction
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+    })
+
+    const { default: jsPDF } = await import('jspdf')
+
+    // Make the PDF page the exact same size as the image
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: [img.width, img.height]
+    })
+
+    // Draw the image to fit the page exactly
+    pdf.addImage(base64Image, 'PNG', 0, 0, img.width, img.height)
+
+    // Generate filename
+    const filename = generateSafeFilename(documentTitle, 'pdf')
+    
+    // Save it
+    pdf.save(filename)
+    toast.success('PDF exported successfully!')
+    return true
+  } catch (error) {
+    console.error('Canvas PDF export failed:', error)
+    toast.error('Failed to export PDF. Please try again.')
+    return false
+  }
+}
+
+/**
+ * Export canvas document to DOCX format (client-side)
+ * @param {string} documentTitle - Document title
+ * @param {string} imageDataUrl - Base64 data URL of the canvas image
+ * @returns {Promise<boolean>} Success status
+ */
+export const exportCanvasToDocx = async (documentTitle, imageDataUrl) => {
+  try {
+    // Create a simple HTML document with the image
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>${documentTitle}</title></head>
+      <body style="margin: 0; padding: 20px; text-align: center;">
+        <img src="${imageDataUrl}" style="max-width: 100%; height: auto;" />
+      </body>
+      </html>
+    `
+    
+    // Create blob and download
+    const blob = new Blob([html], { type: 'application/msword' })
+    const filename = generateSafeFilename(documentTitle, 'docx')
+    
+    downloadFile(blob, filename)
+    toast.success('DOCX exported successfully!')
+    return true
+  } catch (error) {
+    console.error('Canvas DOCX export failed:', error)
+    toast.error('Failed to export DOCX. Please try again.')
+    return false
+  }
+}
+
+export const exportDocument = async (documentId, format, documentType = 'text', documentTitle = '', canvasExportFunction = null) => {
+  // For canvas documents, use client-side export with tldraw's native export
+  if (documentType === 'canvas') {
+    if (!canvasExportFunction) {
+      toast.error('Canvas export function not available')
+      return false
+    }
+    
+    switch (format.toLowerCase()) {
+      case 'pdf':
+        try {
+          const imageDataUrl = await canvasExportFunction('png')
+          return await exportCanvasToPdf(documentTitle, imageDataUrl)
+        } catch (error) {
+          console.error('Canvas PDF export failed:', error)
+          toast.error('Failed to export PDF. Please try again.')
+          return false
+        }
+      case 'docx':
+        try {
+          const imageDataUrl = await canvasExportFunction('png')
+          return await exportCanvasToDocx(documentTitle, imageDataUrl)
+        } catch (error) {
+          console.error('Canvas DOCX export failed:', error)
+          toast.error('Failed to export DOCX. Please try again.')
+          return false
+        }
+      default:
+        toast.error('Canvas export only supports PDF and DOCX formats')
+        return false
+    }
+  }
+  
+  // For text documents, use backend API
   switch (format.toLowerCase()) {
     case 'pdf':
       return await exportToPdf(documentId)

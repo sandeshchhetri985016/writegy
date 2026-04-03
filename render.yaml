@@ -1,0 +1,104 @@
+# Writegy Render Blueprint
+# One-click full deployment for Render.com
+# Optimized for Free Tier, Java 21 Spring Boot + React + Supabase
+
+services:
+  # ==============================================
+  # BACKEND SERVICE - Java 21 Spring Boot
+  # ==============================================
+  - type: web
+    name: writegy-backend
+    runtime: docker
+    repo: https://github.com/sandeshchhetri985016/writegy
+    branch: main
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    region: singapore
+    plan: free
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+
+      - key: PORT
+        value: 8080
+
+      # Database Configuration (Supabase)
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+
+      # Supabase Authentication
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+
+      # Storage Configuration (3 Supabase Buckets)
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_ACCESS_KEY
+        sync: false
+      - key: R2_SECRET_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        value: writegy-files
+      - key: CANVAS_BUCKET_NAME
+        value: canvas-assets
+      - key: AVATARS_BUCKET_NAME
+        value: avatars
+
+      # AI Grammar Service
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: microsoft/wizardlm-2-8x22b
+      - key: OPENROUTER_BASE_URL
+        value: https://openrouter.ai/api/v1
+
+      # JVM Memory Optimization for 512MB Free Tier
+      - key: JAVA_OPTS
+        value: -XX:+UseG1GC -XX:MaxRAMPercentage=70.0 -XX:+UseStringDeduplication -XX:MaxGCPauseMillis=100
+
+      # Frontend CORS Configuration
+      - key: FRONTEND_URL
+        value: https://writegy-frontend.onrender.com
+
+  # ==============================================
+  # FRONTEND SERVICE - React Static Site
+  # ==============================================
+  - type: web
+    name: writegy-frontend
+    runtime: static
+    repo: https://github.com/sandeshchhetri985016/writegy
+    branch: main
+    rootDir: frontend
+    region: singapore
+    plan: free
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_URL
+        value: https://writegy-backend.onrender.com
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_ENABLE_CANVAS_EDITOR
+        value: true
+
+# ==============================================
+# Post Deployment Instructions
+# ==============================================
+# After deployment:
+# 1. Copy your frontend URL and update FRONTEND_URL in backend environment variables
+# 2. Verify all 3 buckets exist in Supabase Storage: writegy-files, canvas-assets, avatars
+# 3. Verify backend health check returns UP status
+# 4. Test document upload, canvas editor and avatar upload functionality

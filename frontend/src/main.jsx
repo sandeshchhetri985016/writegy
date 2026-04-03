@@ -4,6 +4,15 @@ import App from './App.jsx'
 import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+// Suppress findDOMNode warning from react-quill
+const originalConsoleError = console.error
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('findDOMNode is deprecated')) {
+    return
+  }
+  originalConsoleError.apply(console, args)
+}
+
 // Create a client with a default stale time of 5 minutes
 const queryClient = new QueryClient({
   defaultOptions: {

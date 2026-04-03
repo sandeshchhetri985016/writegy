@@ -59,21 +59,21 @@ const FlowchartNode = ({ document, position, onEdit, onDelete, onToggle, isExpan
     >
       {/* Handle (Top) - Input */}
       <div
-        className={`absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-3 h-3 rounded-full bg-gray-400 border-2 border-white z-10 ${level === 0 ? 'opacity-0' : ''}`}
+        className={`absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-3 h-3 rounded-full bg-slate-400 dark:bg-slate-500 border-2 border-white dark:border-slate-800 z-10 ${level === 0 ? 'opacity-0' : ''}`}
       />
 
       {/* Rectangular Card Node (React Flow style) */}
       <div
-        className={`w-64 bg-white rounded-lg shadow-sm border transition-all duration-200 group ${
+        className={`w-64 bg-white dark:bg-slate-800 rounded-lg shadow-sm border transition-all duration-200 group ${
           isSelected
             ? 'border-blue-500 ring-1 ring-blue-500 shadow-md'
             : isHovered
-              ? 'border-blue-300 shadow-md'
-              : 'border-gray-200'
+              ? 'border-blue-300 dark:border-blue-600 shadow-md'
+              : 'border-gray-200 dark:border-slate-700'
         }`}
       >
         {/* Header */}
-        <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 rounded-t-md flex items-center justify-between">
+        <div className="px-3 py-2 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700 rounded-t-md flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">
             {hasChildren ? (
               isExpanded ? <FolderOpen className="w-4 h-4 text-blue-500" /> : <Folder className="w-4 h-4 text-blue-500" />
@@ -118,7 +118,7 @@ const FlowchartNode = ({ document, position, onEdit, onDelete, onToggle, isExpan
             <Link
               to="/editor/new"
               state={{ parentId: document.id, from: currentPath }}
-              className="p-2 bg-white text-green-600 hover:bg-green-50 rounded-full shadow-md border border-gray-100 flex items-center justify-center"
+              className="p-2 bg-white dark:bg-slate-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full shadow-md border border-gray-100 dark:border-slate-600 flex items-center justify-center"
               title="Add child document"
               onClick={(e) => e.stopPropagation()}
             >
@@ -127,7 +127,7 @@ const FlowchartNode = ({ document, position, onEdit, onDelete, onToggle, isExpan
             <Link
               to={`/editor/${document.id}`}
               state={{ from: currentPath }}
-              className="p-2 bg-white text-blue-600 hover:bg-blue-50 rounded-full shadow-md border border-gray-100"
+              className="p-2 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full shadow-md border border-gray-100 dark:border-slate-600"
               title="Edit document"
               onClick={(e) => e.stopPropagation()}
             >
@@ -138,7 +138,7 @@ const FlowchartNode = ({ document, position, onEdit, onDelete, onToggle, isExpan
                 e.stopPropagation()
                 onDelete(document.id, document.title)
               }}
-              className="p-2 bg-white text-red-600 hover:bg-red-50 rounded-full shadow-md border border-gray-100"
+              className="p-2 bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full shadow-md border border-gray-100 dark:border-slate-600"
               title="Delete document"
             >
               <Trash2 className="w-3 h-3" />
@@ -671,7 +671,7 @@ const DocumentTreeView = ({ documents: rawDocuments, onDelete, onRefresh }) => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden bg-gray-50 cursor-grab active:cursor-grabbing select-none"
+      className="relative w-full h-full overflow-hidden bg-gray-50 dark:bg-slate-900 cursor-grab active:cursor-grabbing select-none"
       style={{ touchAction: 'none' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -724,19 +724,19 @@ const DocumentTreeView = ({ documents: rawDocuments, onDelete, onRefresh }) => {
       </div>
 
       {/* Controls */}
-      <div className="absolute bottom-4 left-4 flex flex-col bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
-        <button onClick={() => setViewport(v => ({ ...v, scale: Math.min(v.scale * 1.2, 5) }))} className="p-2 hover:bg-gray-50 border-b border-gray-100 text-gray-600" title="Zoom In"><Plus className="w-4 h-4" /></button>
-        <button onClick={() => setViewport(v => ({ ...v, scale: Math.max(v.scale / 1.2, 0.1) }))} className="p-2 hover:bg-gray-50 border-b border-gray-100 text-gray-600" title="Zoom Out"><Minus className="w-4 h-4" /></button>
-        <button onClick={handleResetLayout} className="p-2 hover:bg-gray-50 border-b border-gray-100 text-gray-600" title="Reset Layout"><RotateCcw className="w-4 h-4" /></button>
-        <button onClick={handleResetView} className="p-2 hover:bg-gray-50 text-gray-600" title="Reset View"><Maximize className="w-4 h-4" /></button>
+      <div className="absolute bottom-4 left-4 flex flex-col bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50 overflow-hidden">
+        <button onClick={() => setViewport(v => ({ ...v, scale: Math.min(v.scale * 1.2, 5) }))} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 text-gray-600 dark:text-slate-400" title="Zoom In"><Plus className="w-4 h-4" /></button>
+        <button onClick={() => setViewport(v => ({ ...v, scale: Math.max(v.scale / 1.2, 0.1) }))} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 text-gray-600 dark:text-slate-400" title="Zoom Out"><Minus className="w-4 h-4" /></button>
+        <button onClick={handleResetLayout} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 text-gray-600 dark:text-slate-400" title="Reset Layout"><RotateCcw className="w-4 h-4" /></button>
+        <button onClick={handleResetView} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-400" title="Reset View"><Maximize className="w-4 h-4" /></button>
       </div>
 
       {/* Empty state for no visible nodes */}
       {flatNodes.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <FileText className="mx-auto h-16 w-16 text-gray-300" />
-            <p className="mt-4 text-gray-500">No documents to display</p>
+            <FileText className="mx-auto h-16 w-16 text-gray-300 dark:text-slate-600" />
+            <p className="mt-4 text-gray-500 dark:text-slate-400">No documents to display</p>
           </div>
         </div>
       )}

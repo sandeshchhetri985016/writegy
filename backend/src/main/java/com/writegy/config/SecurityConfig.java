@@ -45,6 +45,7 @@ public class SecurityConfig {
                                 .requestMatchers("/actuator/**").authenticated()
                                 .requestMatchers("/api/documents/**").authenticated()
                                 .requestMatchers("/api/settings/**").authenticated()
+                                .requestMatchers("/api/user/**").authenticated()
                                 .requestMatchers("/api/admin/**").authenticated()
                                 .requestMatchers("/api/grammar/check").authenticated()
                                 .requestMatchers("/api/export/**").authenticated()

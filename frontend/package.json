@@ -27,7 +27,9 @@
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
     "tldraw": "^4.5.4",
-    "use-debounce": "^10.0.0"
+    "use-debounce": "^10.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

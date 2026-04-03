@@ -3,18 +3,38 @@ import { useAuth } from '../contexts/AuthContext'
 import { FileText, LogOut, User, Settings, Shield, ChevronDown, Moon, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import api from '../lib/api'
 
 const Navbar = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [isDark, setIsDark] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [userAvatar, setUserAvatar] = useState(null)
 
   useEffect(() => {
     // Check for dark mode preference
     const isDarkMode = document.documentElement.classList.contains('dark')
     setIsDark(isDarkMode)
   }, [])
+
+  useEffect(() => {
+    // Fetch user avatar from settings
+    const fetchUserAvatar = async () => {
+      try {
+        const response = await api.get('/api/settings')
+        if (response.data.avatar) {
+          setUserAvatar(response.data.avatar)
+        }
+      } catch (error) {
+        console.error('Failed to fetch user avatar:', error)
+      }
+    }
+    
+    if (user) {
+      fetchUserAvatar()
+    }
+  }, [user])
 
   const toggleDarkMode = () => {
     document.documentElement.classList.toggle('dark')
@@ -107,8 +127,12 @@ const Navbar = () => {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-2 p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200"
               >
-                <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
-                  <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center overflow-hidden">
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="Avatar" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                  ) : (
+                    <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                  )}
                 </div>
                 <span className="hidden sm:block text-sm font-medium">
                   {user.email?.split('@')[0]}

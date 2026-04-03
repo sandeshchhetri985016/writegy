@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, FileText, File, ChevronDown, Loader2 } from 'lucide-react'
-import { exportToPdf, exportToDocx, exportToMarkdown } from '../../lib/api/exportAPI'
+import { Download, Image, FileText, ChevronDown, Loader2 } from 'lucide-react'
+import { exportDocument } from '../../lib/api/exportAPI'
 
-const DocumentExport = ({ documentId, documentTitle, disabled = false }) => {
+const DocumentExport = ({ documentId, documentTitle, documentType = 'text', canvasExportFunction, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loadingFormat, setLoadingFormat] = useState(null)
@@ -21,27 +21,31 @@ const DocumentExport = ({ documentId, documentTitle, disabled = false }) => {
   }, [])
 
   const handleExport = async (format) => {
-    if (!documentId || loading) return
+    if (loading) return
 
     setLoading(true)
     setLoadingFormat(format)
     setIsOpen(false)
 
     try {
-      let success = false
-      
-      switch (format) {
-        case 'pdf':
-          success = await exportToPdf(documentId)
-          break
-        case 'docx':
-          success = await exportToDocx(documentId)
-          break
-        case 'md':
-          success = await exportToMarkdown(documentId)
-          break
-        default:
-          console.error('Invalid export format:', format)
+      // Use canvas export function if available (for canvas documents)
+      if (canvasExportFunction) {
+        // Get the SVG or PNG blob from tldraw
+        const blob = await canvasExportFunction(format)
+        if (blob) {
+          // Create download link
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.download = `${documentTitle || 'document'}-${Date.now()}.${format}`
+          link.href = url
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+        }
+      } else {
+        // For text documents, use the existing export API
+        await exportDocument(documentId, format, documentType, documentTitle)
       }
     } catch (error) {
       console.error('Export failed:', error)
@@ -51,7 +55,25 @@ const DocumentExport = ({ documentId, documentTitle, disabled = false }) => {
     }
   }
 
-  const exportOptions = [
+  // Export options based on document type
+  const exportOptions = canvasExportFunction ? [
+    // Canvas document options (PNG and SVG)
+    {
+      id: 'png',
+      name: 'PNG',
+      description: 'High-quality image format',
+      icon: Image,
+      color: 'text-green-600'
+    },
+    {
+      id: 'svg',
+      name: 'SVG',
+      description: 'Scalable vector format',
+      icon: FileText,
+      color: 'text-purple-600'
+    }
+  ] : [
+    // Text document options (PDF, DOCX, MD)
     {
       id: 'pdf',
       name: 'PDF',
@@ -61,15 +83,15 @@ const DocumentExport = ({ documentId, documentTitle, disabled = false }) => {
     },
     {
       id: 'docx',
-      name: 'Microsoft Word',
-      description: 'Office Open XML Document',
-      icon: File,
+      name: 'DOCX',
+      description: 'Microsoft Word document',
+      icon: FileText,
       color: 'text-blue-600'
     },
     {
       id: 'md',
       name: 'Markdown',
-      description: 'Plain text with markdown formatting',
+      description: 'Plain text with formatting',
       icon: FileText,
       color: 'text-gray-600'
     }
@@ -106,7 +128,7 @@ const DocumentExport = ({ documentId, documentTitle, disabled = false }) => {
 
       {/* Dropdown Menu */}
       {isOpen && !loading && (
-        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999]" style={{ zIndex: 9999 }}>
           <div className="py-1">
             {exportOptions.map((option) => (
               <button

@@ -35,14 +35,44 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import DocumentExport from './DocumentExport'
 
-// Custom styles for Quill editor to increase font size
+// Custom styles for Quill editor to create a seamless, premium UI
 const quillStyles = `
+  /* Remove the ugly default borders */
+  .ql-container.ql-snow {
+    border: none !important;
+  }
+  
+  /* Make the toolbar sticky, clean, and borderless */
+  .ql-toolbar.ql-snow {
+    border: none !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 12px 0 !important;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  /* Dark mode support for toolbar */
+  .dark .ql-toolbar.ql-snow {
+    background: rgba(30, 41, 59, 0.95);
+    border-bottom: 1px solid #334155 !important;
+  }
+
+  /* Make the writing area breathe */
   .ql-editor {
-    font-size: 16px;
-    line-height: 1.75;
-  } 
-  .ql-toolbar {
-    font-size: 14px;
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.8;
+    padding: 1rem 0 4rem 0 !important;
+    color: #334155;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  .dark .ql-editor {
+    color: #e2e8f0;
   }
 `
 
@@ -62,7 +92,9 @@ const QuillWrapper = forwardRef((props, ref) => {
   }, [ref])
   
   return (
-    <ReactQuill {...props} ref={quillRef} modules={quillModules} />
+    <div className="quill-premium-wrapper">
+      <ReactQuill {...props} ref={quillRef} modules={quillModules} />
+    </div>
   )
 })
 
@@ -146,6 +178,7 @@ const TextEditor = () => {
   const [highlightedText, setHighlightedText] = useState('')
   const [screenReaderStatus, setScreenReaderStatus] = useState('')
   const [currentDocumentId, setCurrentDocumentId] = useState(id)
+  const [canvasExportFunction, setCanvasExportFunction] = useState(null)
   const isSavingRef = useRef(false)
   const quillRef = useRef(null)
 
@@ -747,6 +780,8 @@ const TextEditor = () => {
               <DocumentExport
                 documentId={id}
                 documentTitle={document.title}
+                documentType={contentType}
+                canvasExportFunction={canvasExportFunction}
                 disabled={!id || loading}
               />
             )}
@@ -780,14 +815,13 @@ const TextEditor = () => {
             </button>
 
             {/* Text Editor Mode Toggle */}
-            <div className="flex flex-col items-center space-y-2 py-2 border-t border-slate-200 dark:border-slate-700 w-full px-2 mt-2">
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Mode</span>
+            <div className="flex flex-col items-center space-y-3 py-4 border-t border-slate-200 dark:border-slate-700 w-full px-2 mt-2">
               <button
                 onClick={() => setEditorMode('rich-text')}
-                className={`p-2 rounded-lg transition-all duration-200 ${
+                className={`p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center ${
                   editorMode === 'rich-text'
-                    ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    ? 'bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 shadow-sm ring-1 ring-brand-500/20'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
                 title="Rich Text Editor"
               >
@@ -795,14 +829,14 @@ const TextEditor = () => {
               </button>
               <button
                 onClick={() => setEditorMode('markdown')}
-                className={`p-2 rounded-lg transition-all duration-200 ${
+                className={`p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center ${
                   editorMode === 'markdown'
-                    ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    ? 'bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 shadow-sm ring-1 ring-brand-500/20'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
                 title="Markdown Editor"
               >
-                <span className="text-sm font-bold">MD</span>
+                <span className="text-xs font-black tracking-tighter">MD</span>
               </button>
             </div>
 
@@ -834,7 +868,7 @@ const TextEditor = () => {
                   placeholder="Document Title..."
                   value={document.title}
                   onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full max-w-[800px] mx-auto px-4 py-3 text-2xl font-semibold bg-white border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 flex-shrink-0"
+                  className="w-full max-w-[800px] mx-auto px-4 py-3 text-2xl font-semibold bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 flex-shrink-0"
                 />
                 <CanvasEditor
                   initialData={canvasData}
@@ -842,20 +876,21 @@ const TextEditor = () => {
                     setCanvasData(data)
                     // State update triggers the useEffect auto-save below
                   }}
+                  onExportReady={setCanvasExportFunction}
                 />
               </div>
             </Suspense>
           ) : (
-            /* Text Mode - Scrollable content area */
             <div className="flex-1 overflow-y-auto">
-              <div className="max-w-editor mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+              {/* Text Mode - Changed max-w-editor to max-w-3xl for optimal reading width, added more vertical padding */}
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-12">
                 {/* Title Input - Seamless H1 Style */}
                 <input
                   type="text"
-                  placeholder="Document Title..."
+                  placeholder="Untitled Document"
                   value={document.title}
                   onChange={(e) => setDocument(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 font-sans mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700"
+                  className="w-full text-left text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:outline-none focus:ring-0 placeholder-slate-300 dark:placeholder-slate-700 font-sans mb-6 tracking-tight transition-colors"
                 />
 
                 {/* Content Area - Text content types */}
@@ -869,14 +904,49 @@ const TextEditor = () => {
                     className="min-h-[400px]"
                   />
                 ) : (
-                  <QuillWrapper
-                    ref={quillRef}
-                    theme="snow"
-                    value={document.content}
-                    onChange={(content) => setDocument(prev => ({ ...prev, content }))}
-                    className="min-h-[400px]"
-                    placeholder="Start writing your document..."
-                  />
+                  <div className="quill-premium-wrapper relative">
+                    <style>{`
+                      /* Sledgehammer overrides for Quill */
+                      .quill-premium-wrapper .ql-container.ql-snow {
+                        border: none !important;
+                      }
+                      /* Kill the native browser focus ring on the contenteditable div */
+                      .quill-premium-wrapper .ql-editor,
+                      .quill-premium-wrapper .ql-editor:focus,
+                      .quill-premium-wrapper .ql-editor:active {
+                        outline: none !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        font-size: 1.125rem !important;
+                        line-height: 1.8 !important;
+                        padding: 1rem 0 4rem 0 !important;
+                      }
+                      /* Force sticky frosted toolbar */
+                      .quill-premium-wrapper .ql-toolbar.ql-snow {
+                        border: none !important;
+                        border-bottom: 1px solid #e2e8f0 !important;
+                        position: sticky !important;
+                        top: 0 !important;
+                        z-index: 50 !important;
+                        background: rgba(255, 255, 255, 0.95) !important;
+                        backdrop-filter: blur(8px) !important;
+                        padding: 12px 0 !important;
+                        margin-bottom: 1rem !important;
+                      }
+                      .dark .quill-premium-wrapper .ql-toolbar.ql-snow {
+                        background: rgba(30, 41, 59, 0.95) !important;
+                        border-bottom: 1px solid #334155 !important;
+                      }
+                    `}</style>
+                    <QuillWrapper
+                      ref={quillRef}
+                      theme="snow"
+                      value={document.content}
+                      onChange={(content) => setDocument(prev => ({ ...prev, content }))}
+                      className="min-h-[400px]"
+                      placeholder="Start writing your document..."
+                    />
+                  </div>
                 )}
               </div>
             </div>
