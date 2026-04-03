@@ -13,24 +13,31 @@ spring:
     password: ${DATABASE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 15         # Safe baseline for Supabase connection pooler
-      minimum-idle: 5               # Maintain minimum connections for responsiveness
-      connection-timeout: 20000     # 20 second timeout
-      idle-timeout: 300000          # 5 minutes idle timeout
-      max-lifetime: 1200000         # 20 minutes max lifetime
+      maximum-pool-size: 15
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
 
   cache:
     caffeine:
-      spec: maximumSize=100,expireAfterWrite=1h  # Optimized for grammar checks
+      spec: maximumSize=100,expireAfterWrite=1h
 
   flyway:
-    enabled: true                   # Auto-migration in production
-    baseline-on-migrate: true       # Handle existing databases
+    enabled: true
+    baseline-on-migrate: true
 
   servlet:
     multipart:
-      max-file-size: 5MB            # Reduced for 512MB free tier safety
-      max-request-size: 5MB         # Prevent memory exhaustion
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SUPABASE_URL}
+          jwk-set-uri: ${SUPABASE_URL}/.well-known/jwk.json
 
 languagetool:
   api:
@@ -50,16 +57,14 @@ cloudflare:
 cors:
   allowed-origins: ${FRONTEND_URL}
 
-# Rate Limiting Configuration (global bucket)
 rate-limit:
   grammar-checks:
-    capacity: 20                    # Requests per refill period
-    refill-duration: 3600           # 1 hour in seconds
+    capacity: 20
+    refill-duration: 3600
 
-# JWT Validation Configuration
 jwt:
   validation:
-    strict: true                    # Enforce strict JWT validation in production
+    strict: true
 
 logging:
   level:
@@ -70,12 +75,3 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-
-# OAuth2 Resource Server Configuration (Supabase JWT validation)
-spring:
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${SUPABASE_URL}
-          jwk-set-uri: ${SUPABASE_URL}/.well-known/jwk.json
