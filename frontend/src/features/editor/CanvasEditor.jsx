@@ -9,8 +9,10 @@ import './canvas-theme.css'
 // NotebookBackground: Reactive CSS background that pans with camera Y
 const NotebookBackground = () => {
   const editor = useEditor()
-  const camera = useValue('camera', () => editor.getCamera(), [editor])
-  
+  const camera = useValue('camera', () => editor?.getCamera(), [editor])
+
+  // CRITICAL FIX: Prevent render crash before camera initializes
+  if (!camera) return null;
   return (
     <div 
       className="absolute inset-0 pointer-events-none overflow-hidden"
@@ -87,7 +89,7 @@ const CanvasEditor = forwardRef(({
               editorRef.current = editor
               editor.setCamera({ x: 0, y: 0, z: 1 })
               editor.updateInstanceState({ isGridMode: false })
-              
+
               if (readOnly) {
                 editor.updateInstanceState({ isReadonly: true })
               }
@@ -129,118 +131,107 @@ const CanvasEditor = forwardRef(({
                 onExportReady(() => exportCanvasAsImage)
               }
 
-              // === THE BOUNDARY LOGIC ===
-              editor.store.listen(() => {
+              // === CRITICAL FIX: Safe Unified Store Listener ===
+              editor.store.listen((entry) => {
                 const camera = editor.getCamera()
-                
-                // Tldraw Y axis: Scrolling UP makes Y positive. Scrolling DOWN makes Y negative.
-                const TOP_LIMIT = 0; // The absolute top. Cannot scroll above the cover page.
-                const BOTTOM_LIMIT = -56550; // Allow scrolling down exactly 50 pages (1131 * 50). Adjust as needed.
 
-                let targetY = camera.y;
+                // 1. BOUNDARY CONSTRAINTS
+                if (camera) {
+                  const TOP_LIMIT = 0;
+                  const BOTTOM_LIMIT = -56550;
+                  let targetY = camera.y;
 
-                // Enforce the physical boundaries
-                if (targetY > TOP_LIMIT) targetY = TOP_LIMIT;
-                if (targetY < BOTTOM_LIMIT) targetY = BOTTOM_LIMIT;
+                  if (targetY > TOP_LIMIT) targetY = TOP_LIMIT;
+                  if (targetY < BOTTOM_LIMIT) targetY = BOTTOM_LIMIT;
 
-                // Lock X, Lock Zoom, and apply clamped Y
-                if (camera.x !== 0 || camera.z !== 1 || camera.y !== targetY) {
-                  editor.setCamera({ x: 0, y: targetY, z: 1 })
+                  if (Math.abs(camera.x) > 0.1 || camera.z !== 1 || Math.abs(camera.y - targetY) > 0.1) {
+                    editor.setCamera({ x: 0, y: targetY, z: 1 })
+                  }
+                }
+
+                // 2. IMAGE RESIZING (Added shapes)
+                if (entry.changes.added) {
+                  Object.values(entry.changes.added).forEach(shape => {
+                    if (shape.type === 'image') {
+                      const MAX_WIDTH = 600;
+                      const originalWidth = shape.props?.w || shape.w;
+
+                      if (originalWidth > MAX_WIDTH) {
+                        const scale = MAX_WIDTH / originalWidth;
+                        setTimeout(() => {
+                          const currentShape = editor.getShape(shape.id);
+                          if (currentShape) {
+                            editor.updateShape({
+                              id: shape.id,
+                              type: 'image',
+                              props: { ...currentShape.props, w: MAX_WIDTH, h: (shape.props?.h || shape.h) * scale }
+                            })
+                          }
+                        }, 0)
+                      }
+                    }
+                  })
+                }
+
+                // 3. SHAPE BOUNDARIES (Updated shapes)
+                if (entry.changes.updated) {
+                  const BOUNDS = { x: 0, y: 0, w: 800, h: 56550 }
+                  Object.values(entry.changes.updated).forEach(updateTuple => {
+                    const shape = updateTuple[1]
+
+                    if (shape && (shape.type === 'image' || shape.type === 'text' || shape.type === 'draw')) {
+                      let newX = shape.x
+                      let newY = shape.y
+                      let needsUpdate = false
+
+                      if (newX < BOUNDS.x) { newX = BOUNDS.x; needsUpdate = true }
+                      if (newY < BOUNDS.y) { newY = BOUNDS.y; needsUpdate = true }
+
+                      const w = shape.props?.w || 100;
+                      const h = shape.props?.h || 100;
+
+                      if (newX + w > BOUNDS.x + BOUNDS.w) { newX = BOUNDS.x + BOUNDS.w - w; needsUpdate = true }
+                      if (newY + h > BOUNDS.y + BOUNDS.h) { newY = BOUNDS.y + BOUNDS.h - h; needsUpdate = true }
+
+                      if (needsUpdate) {
+                        setTimeout(() => {
+                          if (editor.getShape(shape.id)) {
+                            editor.updateShape({ id: shape.id, type: shape.type, x: newX, y: newY })
+                          }
+                        }, 0)
+                      }
+                    }
+                  })
+                }
+
+                // 4. AUTO-SAVE LOGIC
+                if (onSave && entry.source === 'user') {
+                  const hasDocumentChanges =
+                    Object.keys(entry.changes.added).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:')) ||
+                    Object.keys(entry.changes.updated).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:')) ||
+                    Object.keys(entry.changes.removed).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:'))
+
+                  if (hasDocumentChanges) {
+                    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+                    saveTimeoutRef.current = setTimeout(() => {
+                      const snapshot = editor.getSnapshot()
+                      onSave(JSON.stringify(snapshot))
+                    }, 2000)
+                  }
                 }
               })
 
-              // === IMAGE AUTO-RESIZE ===
-              // Automatically resize pasted images to fit within canvas bounds
-              const handleCreateShapes = (entry) => {
-                const shapes = entry.changes.added
-                Object.keys(shapes).forEach(id => {
-                  const shape = shapes[id]
-                  if (shape.type === 'image') {
-                    // Telemetry: Log shape structure for debugging
-                    console.log('Intercepted Shape:', shape)
-                    
-                    const MAX_WIDTH = 600
-                    const originalWidth = shape.props?.w || shape.w
-                    const originalHeight = shape.props?.h || shape.h
-                    
-                    if (originalWidth > MAX_WIDTH) {
-                      const scale = MAX_WIDTH / originalWidth
-                      const newHeight = originalHeight * scale
-                      
-                      console.log(`Resizing image: ${originalWidth}x${originalHeight} -> ${MAX_WIDTH}x${newHeight}`)
-                      
-                      editor.updateShapes([{
-                        id: shape.id,
-                        type: 'image',
-                        props: {
-                          w: MAX_WIDTH,
-                          h: newHeight
-                        }
-                      }])
-                    }
-                  }
-                })
-              }
-
-              // === BOUNDARY CONSTRAINT ===
-              // Constrain shapes to visible canvas area
-              const BOUNDS = { x: 0, y: 0, w: 800, h: 1131 }
-              const handleChangeShapes = (entry) => {
-                const shapes = entry.changes.updated
-                Object.keys(shapes).forEach(id => {
-                  const shape = shapes[id]
-                  if (shape.type === 'image' || shape.type === 'text' || shape.type === 'draw') {
-                    const { x, y, w, h } = shape
-                    let newX = x
-                    let newY = y
-                    let needsUpdate = false
-
-                    // Check if shape exceeds left boundary
-                    if (x < BOUNDS.x) {
-                      newX = BOUNDS.x
-                      needsUpdate = true
-                    }
-                    // Check if shape exceeds top boundary
-                    if (y < BOUNDS.y) {
-                      newY = BOUNDS.y
-                      needsUpdate = true
-                    }
-                    // Check if shape exceeds right boundary
-                    if (x + w > BOUNDS.x + BOUNDS.w) {
-                      newX = BOUNDS.x + BOUNDS.w - w
-                      needsUpdate = true
-                    }
-                    // Check if shape exceeds bottom boundary
-                    if (y + h > BOUNDS.y + BOUNDS.h) {
-                      newY = BOUNDS.y + BOUNDS.h - h
-                      needsUpdate = true
-                    }
-
-                    // Only update if shape actually exceeds bounds (performance guard)
-                    if (needsUpdate) {
-                      editor.updateShape({
-                        id: shape.id,
-                        type: shape.type,
-                        x: newX,
-                        y: newY
-                      })
-                    }
-                  }
-                })
-              }
-
-              editor.on('create-shapes', handleCreateShapes)
-              editor.on('change-shapes', handleChangeShapes)
-              
-              if (initialData) {
+              if (initialData && initialData !== "null" && initialData !== '""') {
                 try {
-                  const snapshot = JSON.parse(initialData)
-                  loadSnapshot(editor.store, snapshot)
+                  const snapshot = typeof initialData === 'string' ? JSON.parse(initialData) : initialData;
+                  if (snapshot && typeof snapshot === 'object') {
+                    loadSnapshot(editor.store, snapshot)
+                  }
                 } catch (error) {
                   console.warn('Failed to load initial canvas data:', error)
                 }
               }
-              
+
               editor.registerExternalAssetHandler('file', async ({ file, assetId }) => {
                 const toastId = toast.loading('Uploading image...')
                 try {
@@ -255,7 +246,7 @@ const CanvasEditor = forwardRef(({
                   const MAX_WIDTH = 600
                   let finalWidth = img.width
                   let finalHeight = img.height
-                  
+
                   if (img.width > MAX_WIDTH) {
                     const scale = MAX_WIDTH / img.width
                     finalWidth = MAX_WIDTH
@@ -281,102 +272,6 @@ const CanvasEditor = forwardRef(({
                   throw error
                 }
               })
-
-              // === HANDLE IMAGE RESIZE ON SHAPE CREATION ===
-              // This catches images added via paste (which may bypass registerExternalAssetHandler)
-              const handleStoreChange = (entry) => {
-                const addedShapes = entry.changes.added
-                
-                Object.keys(addedShapes).forEach(id => {
-                  if (id.startsWith('shape:')) {
-                    const shape = addedShapes[id]
-                    
-                    if (shape.type === 'image') {
-                      console.log('Intercepted Shape:', shape)
-                      
-                      const MAX_WIDTH = 600
-                      const originalWidth = shape.props?.w || shape.w
-                      const originalHeight = shape.props?.h || shape.h
-                      
-                      // Calculate reposition to center image in visible area
-                      let newX = shape.x
-                      let newY = shape.y
-                      
-                      // Get the center of the visible viewport
-                      const camera = editor.getCamera()
-                      const viewport = editor.getViewportScreenBounds()
-                      const centerX = -camera.x + viewport.w / 2
-                      const centerY = -camera.y + viewport.h / 2
-                      
-                      // If image is outside visible area, reposition to center
-                      if (shape.x < -100 || shape.x > 600 || shape.y < -100 || shape.y > 800) {
-                        // Center the image in the visible area
-                        newX = centerX - (originalWidth / 2)
-                        newY = centerY - (originalHeight / 2)
-                        console.log(`Repositioning image from (${shape.x}, ${shape.y}) to (${newX}, ${newY}) - center of viewport`)
-                      }
-                      
-                      if (originalWidth && originalWidth > MAX_WIDTH) {
-                        const scale = MAX_WIDTH / originalWidth
-                        const newHeight = originalHeight * scale
-                        
-                        console.log(`Resizing image: ${originalWidth}x${originalHeight} -> ${MAX_WIDTH}x${newHeight}`)
-                        
-                        // Use setTimeout to ensure shape is fully created before updating
-                        setTimeout(() => {
-                          // Get current shape to preserve all props
-                          const currentShape = editor.getShape(shape.id)
-                          if (currentShape) {
-                            console.log('Current shape props:', currentShape.props)
-                            editor.updateShapes([{
-                              id: shape.id,
-                              type: 'image',
-                              x: newX,
-                              y: newY,
-                              props: {
-                                ...currentShape.props,
-                                w: MAX_WIDTH,
-                                h: newHeight
-                              }
-                            }])
-                          }
-                        }, 0)
-                      } else if (newX !== shape.x || newY !== shape.y) {
-                        // Just reposition if no resize needed
-                        setTimeout(() => {
-                          editor.updateShapes([{
-                            id: shape.id,
-                            type: 'image',
-                            x: newX,
-                            y: newY
-                          }])
-                        }, 0)
-                      }
-                    }
-                  }
-                })
-              }
-              
-              editor.store.listen(handleStoreChange)
-
-              if (onSave) {
-                editor.store.listen((entry) => {
-                  // ONLY save if the user actually changed a shape, asset, or page.
-                  // Ignore camera movements, pointer changes, and presence data.
-                  const hasDocumentChanges =
-                    Object.keys(entry.changes.added).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:')) ||
-                    Object.keys(entry.changes.updated).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:')) ||
-                    Object.keys(entry.changes.removed).some(id => id.startsWith('shape:') || id.startsWith('asset:') || id.startsWith('page:'))
-
-                  if (hasDocumentChanges && entry.source === 'user') {
-                    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-                    saveTimeoutRef.current = setTimeout(() => {
-                      const snapshot = editor.getSnapshot()
-                      onSave(JSON.stringify(snapshot))
-                    }, 2000)
-                  }
-                })
-              }
             }}
           />
         </div>

@@ -7,6 +7,10 @@ spring:
     hibernate:
       ddl-auto: update
 
+  # Add this here! Now ALL profiles will read the .env file
+  config:
+    import: optional:file:./.env[.properties]
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/writegy}
     username: ${DATABASE_USERNAME:postgres}

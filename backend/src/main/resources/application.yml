@@ -11,6 +11,9 @@ spring:
   application:
     name: writegy-backend
 
+  config:
+    import: optional:file:./.env[.properties]
+    
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/writegy}
     username: ${DATABASE_USERNAME:postgres}
