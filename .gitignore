@@ -77,3 +77,10 @@ writegy-iml/
 
 # Frontend build output
 frontend/dist
+
+# Graphify knowledge graph output (regeneratable)
+graphify-out/
+
+# Graphify development tool documentation (portfolio-only)
+docs/GRAPHIFY-DEV-TOOL.md
+docs/GRAPHIFY-TROUBLESHOOTING-WORKFLOW.md
