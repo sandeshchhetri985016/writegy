@@ -169,6 +169,8 @@ const TextEditor = () => {
   const [charCount, setCharCount] = useState(0)
   const [autoSaveStatus, setAutoSaveStatus] = useState('')
   const [lastSavedContent, setLastSavedContent] = useState('')
+  const [lastSavedTitle, setLastSavedTitle] = useState('')
+  const [lastSavedCanvasData, setLastSavedCanvasData] = useState(null)
   const [grammarSuggestions, setGrammarSuggestions] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isFixing, setIsFixing] = useState(false)
@@ -205,7 +207,14 @@ const TextEditor = () => {
   // Auto-save to server every 3 seconds
   useEffect(() => {
     if (!document.title.trim() && !document.content.trim() && !canvasData) return
-    if (document.content === lastSavedContent && !canvasData) return
+    if (contentType === 'canvas') {
+      const canvasUnchanged = canvasData === lastSavedCanvasData
+      const titleUnchanged = document.title === lastSavedTitle
+
+      if (canvasUnchanged && titleUnchanged) return
+    } else if (document.content === lastSavedContent && !canvasData) {
+      return
+    }
 
     setAutoSaveStatus('Saving...')
     const saveTimeout = setTimeout(() => {
@@ -213,7 +222,7 @@ const TextEditor = () => {
     }, 3000)
 
     return () => clearTimeout(saveTimeout)
-  }, [document.content, document.title, canvasData, lastSavedContent, user])
+  }, [document.content, document.title, canvasData, lastSavedContent, lastSavedTitle, lastSavedCanvasData, user, contentType])
 
   const autoSaveToServer = async () => {
     // Prevent concurrent saves
@@ -307,6 +316,9 @@ const TextEditor = () => {
       if (response.data.canvasData) {
         setCanvasData(response.data.canvasData)
       }
+      setLastSavedContent(response.data.content || '')
+      setLastSavedTitle(response.data.title || '')
+      setLastSavedCanvasData(response.data.canvasData || null)
     } catch (error) {
       console.error('Failed to load document:', error)
       toast.error('Failed to load document')
@@ -770,6 +782,8 @@ const TextEditor = () => {
               ) : (
                 <>
                   <Save className="w-4 h-4 sm:mr-2" />
+                setLastSavedTitle(document.title)
+                setLastSavedCanvasData(canvasData)
                   <span className="hidden sm:inline">Save</span>
                 </>
               )}
@@ -787,6 +801,8 @@ const TextEditor = () => {
             )}
           </div>
         </div>
+              setLastSavedTitle(document.title)
+              setLastSavedCanvasData(canvasData)
       </header>
 
       {/* Editor */}

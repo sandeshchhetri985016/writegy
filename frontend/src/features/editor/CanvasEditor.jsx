@@ -1,4 +1,4 @@
-import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo, memo } from 'react'
 import { Tldraw, loadSnapshot, useEditor, useValue } from 'tldraw'
 import { Book } from 'lucide-react'
 import 'tldraw/tldraw.css'
@@ -51,6 +51,13 @@ const CanvasEditor = forwardRef(({
 }, ref) => {
   const editorRef = useRef(null)
   const saveTimeoutRef = useRef(null)
+  const tldrawComponents = useMemo(() => ({
+    Background: NotebookBackground,
+    PageMenu: null,
+    NavigationZone: null,
+    Minimap: null,
+    HelperButtons: null
+  }), [])
 
   useImperativeHandle(ref, () => ({
     getEditor: () => editorRef.current,
@@ -78,13 +85,7 @@ const CanvasEditor = forwardRef(({
       >
         <div className="absolute inset-0">
           <Tldraw
-            components={{
-              Background: NotebookBackground,
-              PageMenu: null,
-              NavigationZone: null,
-              Minimap: null,
-              HelperButtons: null
-            }}
+            components={tldrawComponents}
             onMount={(editor) => {
               editorRef.current = editor
               editor.setCamera({ x: 0, y: 0, z: 1 })
@@ -282,4 +283,4 @@ const CanvasEditor = forwardRef(({
 
 CanvasEditor.displayName = 'CanvasEditor'
 
-export default CanvasEditor
+export default memo(CanvasEditor, (prevProps, nextProps) => prevProps.readOnly === nextProps.readOnly)
