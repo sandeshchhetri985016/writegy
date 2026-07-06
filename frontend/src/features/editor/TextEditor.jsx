@@ -782,8 +782,6 @@ const TextEditor = () => {
               ) : (
                 <>
                   <Save className="w-4 h-4 sm:mr-2" />
-                setLastSavedTitle(document.title)
-                setLastSavedCanvasData(canvasData)
                   <span className="hidden sm:inline">Save</span>
                 </>
               )}
@@ -801,8 +799,6 @@ const TextEditor = () => {
             )}
           </div>
         </div>
-              setLastSavedTitle(document.title)
-              setLastSavedCanvasData(canvasData)
       </header>
 
       {/* Editor */}

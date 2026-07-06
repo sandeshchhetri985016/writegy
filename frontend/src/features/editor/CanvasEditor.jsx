@@ -65,6 +65,21 @@ const CanvasEditor = forwardRef(({
   }))
 
   useEffect(() => {
+    if (!editorRef.current) return
+
+    if (initialData && initialData !== 'null' && initialData !== '""') {
+      try {
+        const snapshot = typeof initialData === 'string' ? JSON.parse(initialData) : initialData
+        if (snapshot && typeof snapshot === 'object') {
+          loadSnapshot(editorRef.current.store, snapshot)
+        }
+      } catch (error) {
+        console.warn('Failed to load initial canvas data:', error)
+      }
+    }
+  }, [initialData])
+
+  useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
       if (editorRef.current) {
@@ -283,4 +298,7 @@ const CanvasEditor = forwardRef(({
 
 CanvasEditor.displayName = 'CanvasEditor'
 
-export default memo(CanvasEditor, (prevProps, nextProps) => prevProps.readOnly === nextProps.readOnly)
+export default memo(CanvasEditor, (prevProps, nextProps) => (
+  prevProps.readOnly === nextProps.readOnly &&
+  prevProps.initialData === nextProps.initialData
+))
