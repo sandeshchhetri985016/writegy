@@ -34,8 +34,13 @@ public class JwtUtil {
         return trimmed;
     }
 
+    private byte[] getSecretBytes() {
+        String secret = getSanitizedSecret();
+        return secret.getBytes(StandardCharsets.UTF_8);
+    }
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = getSanitizedSecret().getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = getSecretBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

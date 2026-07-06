@@ -8,10 +8,12 @@ import com.writegy.repository.UserRepository;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -211,7 +213,7 @@ public class DocumentService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null) {
-            throw new RuntimeException("Authentication required");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
         }
 
         String email = null;
@@ -227,11 +229,11 @@ public class DocumentService {
                 (org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal();
             email = userDetails.getUsername();
         } else {
-            throw new RuntimeException("Invalid authentication principal");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication principal");
         }
 
         if (email == null) {
-            throw new RuntimeException("Invalid JWT token: email claim missing");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token: email claim missing");
         }
 
         final String finalEmail = email;
