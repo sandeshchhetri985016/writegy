@@ -18,11 +18,24 @@ import java.util.function.Function;
 public class JwtUtil {
 
     // This pulls your SUPABASE_JWT_SECRET from the .env file!
-    @Value("${supabase.jwt.secret}")
+    @Value("${supabase.jwt.secret:}")
     private String jwtSecret;
 
+    private String getSanitizedSecret() {
+        if (jwtSecret == null) {
+            return "";
+        }
+
+        String trimmed = jwtSecret.trim();
+        if ((trimmed.startsWith("\"") && trimmed.endsWith("\"")) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+            return trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+
+        return trimmed;
+    }
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = getSanitizedSecret().getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
