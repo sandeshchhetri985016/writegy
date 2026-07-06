@@ -51,6 +51,7 @@ const CanvasEditor = forwardRef(({
 }, ref) => {
   const editorRef = useRef(null)
   const saveTimeoutRef = useRef(null)
+  const hasLoadedInitialDataRef = useRef(false)
   const tldrawComponents = useMemo(() => ({
     Background: NotebookBackground,
     PageMenu: null,
@@ -65,13 +66,14 @@ const CanvasEditor = forwardRef(({
   }))
 
   useEffect(() => {
-    if (!editorRef.current) return
+    if (!editorRef.current || hasLoadedInitialDataRef.current) return
 
     if (initialData && initialData !== 'null' && initialData !== '""') {
       try {
         const snapshot = typeof initialData === 'string' ? JSON.parse(initialData) : initialData
         if (snapshot && typeof snapshot === 'object') {
           loadSnapshot(editorRef.current.store, snapshot)
+          hasLoadedInitialDataRef.current = true
         }
       } catch (error) {
         console.warn('Failed to load initial canvas data:', error)
@@ -238,14 +240,7 @@ const CanvasEditor = forwardRef(({
               })
 
               if (initialData && initialData !== "null" && initialData !== '""') {
-                try {
-                  const snapshot = typeof initialData === 'string' ? JSON.parse(initialData) : initialData;
-                  if (snapshot && typeof snapshot === 'object') {
-                    loadSnapshot(editor.store, snapshot)
-                  }
-                } catch (error) {
-                  console.warn('Failed to load initial canvas data:', error)
-                }
+                hasLoadedInitialDataRef.current = false
               }
 
               editor.registerExternalAssetHandler('file', async ({ file, assetId }) => {
